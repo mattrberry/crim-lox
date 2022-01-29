@@ -148,7 +148,7 @@ class Scanner
     is_alpha(char) || is_digit(char)
   end
 
-  def add_token(type : TokenType, literal : Literal = nil)
+  def add_token(type : TokenType, literal : LiteralValue = nil)
     @tokens << Token.new(type, @source[@start...@current], literal, @line)
   end
 end

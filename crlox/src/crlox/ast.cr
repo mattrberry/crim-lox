@@ -18,12 +18,16 @@ class Binary < Expr
   getter operator : Token
   getter right : Expr
 
+  def_equals_and_hash @left, @operator, @right
+
   def initialize(@left : Expr, @operator : Token, @right : Expr)
   end
 end
 
 class Grouping < Expr
   getter expression : Expr
+
+  def_equals_and_hash @expression
 
   def initialize(@expression : Expr)
   end
@@ -32,6 +36,8 @@ end
 class Literal < Expr
   getter value : LiteralValue
 
+  def_equals_and_hash @value
+
   def initialize(@value : LiteralValue)
   end
 end
@@ -39,6 +45,8 @@ end
 class Unary < Expr
   getter operator : Token
   getter right : Expr
+
+  def_equals_and_hash @operator, @right
 
   def initialize(@operator : Token, @right : Expr)
   end

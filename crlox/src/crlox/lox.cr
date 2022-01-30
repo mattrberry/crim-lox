@@ -1,6 +1,7 @@
-require "./scanner"
 require "./token"
 require "./token_type"
+require "./scanner"
+require "./parser"
 
 class Lox
   @@had_error = false
@@ -24,14 +25,23 @@ class Lox
     report(line, "", message)
   end
 
+  def self.error(token : Token, message : String) : Nil
+    if token.type == TokenType::EOF
+      report(token.line, " at end", message)
+    else
+      report(token.line, " at '#{token.lexeme}'", message)
+    end
+  end
+
   def self.report(line : Int, where : String, message : String) : Nil
     STDERR.puts("[line #{line}] Error#{where}: #{message}")
     @@had_error = true
   end
 
   def run(source : String) : Nil
-    scanner = Scanner.new(source)
-    tokens = scanner.scan_tokens
-    tokens.each { |token| puts token }
+    tokens = Scanner.new(source).scan_tokens
+    ast = Parser.new(tokens).parse
+    return if @@had_error # stop if there was a syntax error
+    puts AstPrinter.new.print(ast) if ast
   end
 end

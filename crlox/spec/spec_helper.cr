@@ -45,3 +45,9 @@ end
 def token(lexeme : String, line = 1) : Token
   Token.new(token_type(lexeme), lexeme, nil, line)
 end
+
+def interpret(source : String) : LiteralValue
+  ast = parse(source)
+  raise "Cannot parse #{source}" unless ast
+  ast.accept(Interpreter.new)
+end

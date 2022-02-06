@@ -19,7 +19,7 @@ module Crlox
       statements
     end
 
-    # declaration -> vardecl | statement
+    # declaration -> varDecl | statement
     def declaration : Stmt?
       if match(TokenType::Var)
         var_declaration
@@ -61,9 +61,21 @@ module Crlox
       Expression.new(expr)
     end
 
-    # expression -> equality
+    # expression -> assignment
     private def expression : Expr
-      equality
+      assignment
+    end
+
+    # assignment -> IDENTIFIER "=" assignment | equality
+    private def assignment : Expr
+      expr = equality
+      if match(TokenType::Equal)
+        equals = previous
+        value = assignment
+        return Assign.new(expr.name, value) if expr.is_a?(Variable)
+        error(equals, "Invalid assignment target.")
+      end
+      expr
     end
 
     # equality -> comparison ( ( "!=" | "==" ) comparison )*
@@ -71,7 +83,7 @@ module Crlox
       left_associative_binop(->comparison, TokenType::BangEqual, TokenType::EqualEqual)
     end
 
-    # comparison ->  term ( ( ">" | ">=" | "<" | "<=" ) term )*
+    # comparison -> term ( ( ">" | ">=" | "<" | "<=" ) term )*
     private def comparison : Expr
       left_associative_binop(->term, TokenType::Greater, TokenType::GreaterEqual, TokenType::Less, TokenType::LessEqual)
     end

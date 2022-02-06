@@ -92,6 +92,12 @@ module Crlox
       @environment.get(variable.name)
     end
 
+    def visit(assign : Assign) : LoxValue
+      value = evaluate(assign.value)
+      @environment.assign(assign.name, value)
+      value
+    end
+
     private def stringify(value : LoxValue) : String
       case value
       when Nil then "nil"

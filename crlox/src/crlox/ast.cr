@@ -50,6 +50,7 @@ module Crlox
       abstract def visit(literal : Literal) : T
       abstract def visit(unary : Unary) : T
       abstract def visit(variable : Variable) : T
+      abstract def visit(assign : Assign) : T
     end
 
     def accept(visitor : Visitor(T)) : T forall T
@@ -105,6 +106,16 @@ module Crlox
     end
   end
 
+  class Assign < Expr
+    getter name : Token
+    getter value : Expr
+
+    def_equals_and_hash @name, @value
+
+    def initialize(@name : Token, @value : Expr)
+    end
+  end
+
   class AstPrinter
     include Expr::Visitor(String)
 
@@ -134,6 +145,10 @@ module Crlox
 
     def visit(variable : Variable) : String
       parenthesize("var", variable.name.lexeme)
+    end
+
+    def visit(assign : Assign) : String
+      parenthesize("=", assign.name, assign.value)
     end
 
     private def parenthesize(name : String, *exprs : Expr) : String

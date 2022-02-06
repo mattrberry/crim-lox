@@ -15,5 +15,10 @@ module Crlox
     def define(name : String, value : LoxValue) : Nil
       @values[name] = value
     end
+
+    def assign(name : Token, value : LoxValue) : Nil
+      raise RuntimeError.new(name, "Undefined variable '#{name.lexeme}'.") unless @values.has_key?(name.lexeme)
+      @values[name.lexeme] = value      
+    end
   end
 end

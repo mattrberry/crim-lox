@@ -13,33 +13,33 @@ module Crlox
     def accept(visitor : Visitor(T)) : T forall T
       visitor.visit(self)
     end
-  end
 
-  class Expression < Stmt
-    getter expr : Expr
+    class Expression < Stmt
+      getter expr : Expr
 
-    def_equals_and_hash @expr
+      def_equals_and_hash @expr
 
-    def initialize(@expr : Expr)
+      def initialize(@expr : Expr)
+      end
     end
-  end
 
-  class Print < Stmt
-    getter expr : Expr
+    class Print < Stmt
+      getter expr : Expr
 
-    def_equals_and_hash @expr
+      def_equals_and_hash @expr
 
-    def initialize(@expr : Expr)
+      def initialize(@expr : Expr)
+      end
     end
-  end
 
-  class Var < Stmt
-    getter name : Token
-    getter initializer : Expr?
+    class Var < Stmt
+      getter name : Token
+      getter initializer : Expr?
 
-    def_equals_and_hash @name, @initializer
+      def_equals_and_hash @name, @initializer
 
-    def initialize(@name : Token, @initializer : Expr?)
+      def initialize(@name : Token, @initializer : Expr?)
+      end
     end
   end
 
@@ -56,63 +56,63 @@ module Crlox
     def accept(visitor : Visitor(T)) : T forall T
       visitor.visit(self)
     end
-  end
 
-  class Binary < Expr
-    getter left : Expr
-    getter operator : Token
-    getter right : Expr
+    class Binary < Expr
+      getter left : Expr
+      getter operator : Token
+      getter right : Expr
 
-    def_equals_and_hash @left, @operator, @right
+      def_equals_and_hash @left, @operator, @right
 
-    def initialize(@left : Expr, @operator : Token, @right : Expr)
+      def initialize(@left : Expr, @operator : Token, @right : Expr)
+      end
     end
-  end
 
-  class Grouping < Expr
-    getter expression : Expr
+    class Grouping < Expr
+      getter expression : Expr
 
-    def_equals_and_hash @expression
+      def_equals_and_hash @expression
 
-    def initialize(@expression : Expr)
+      def initialize(@expression : Expr)
+      end
     end
-  end
 
-  class Literal < Expr
-    getter value : LiteralValue
+    class Literal < Expr
+      getter value : LiteralValue
 
-    def_equals_and_hash @value
+      def_equals_and_hash @value
 
-    def initialize(@value : LiteralValue)
+      def initialize(@value : LiteralValue)
+      end
     end
-  end
 
-  class Unary < Expr
-    getter operator : Token
-    getter right : Expr
+    class Unary < Expr
+      getter operator : Token
+      getter right : Expr
 
-    def_equals_and_hash @operator, @right
+      def_equals_and_hash @operator, @right
 
-    def initialize(@operator : Token, @right : Expr)
+      def initialize(@operator : Token, @right : Expr)
+      end
     end
-  end
 
-  class Variable < Expr
-    getter name : Token
+    class Variable < Expr
+      getter name : Token
 
-    def_equals_and_hash @name
+      def_equals_and_hash @name
 
-    def initialize(@name : Token)
+      def initialize(@name : Token)
+      end
     end
-  end
 
-  class Assign < Expr
-    getter name : Token
-    getter value : Expr
+    class Assign < Expr
+      getter name : Token
+      getter value : Expr
 
-    def_equals_and_hash @name, @value
+      def_equals_and_hash @name, @value
 
-    def initialize(@name : Token, @value : Expr)
+      def initialize(@name : Token, @value : Expr)
+      end
     end
   end
 

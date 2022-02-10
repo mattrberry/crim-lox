@@ -35,7 +35,7 @@ module Crlox
       name = consume(TokenType::Identifier, "Expect variable name.")
       initializer = expression if match(TokenType::Equal)
       consume(TokenType::Semicolon, "Expect ';' after variable declaration.")
-      Var.new(name, initializer)
+      Stmt::Var.new(name, initializer)
     end
 
     # statement -> exprStmt | printStmt
@@ -51,14 +51,14 @@ module Crlox
     private def print_statement : Stmt
       value = expression
       consume(TokenType::Semicolon, "Expect ';' after value.")
-      Print.new(value)
+      Stmt::Print.new(value)
     end
 
     # exprStmt -> expression ";"
     private def expression_statement : Stmt
       expr = expression
       consume(TokenType::Semicolon, "Expect ';' after expression.")
-      Expression.new(expr)
+      Stmt::Expression.new(expr)
     end
 
     # expression -> assignment
@@ -72,7 +72,7 @@ module Crlox
       if match(TokenType::Equal)
         equals = previous
         value = assignment
-        return Assign.new(expr.name, value) if expr.is_a?(Variable)
+        return Expr::Assign.new(expr.name, value) if expr.is_a?(Expr::Variable)
         error(equals, "Invalid assignment target.")
       end
       expr
@@ -103,7 +103,7 @@ module Crlox
       if match(TokenType::Bang, TokenType::Minus)
         operator = previous
         right = unary
-        Unary.new(operator, right)
+        Expr::Unary.new(operator, right)
       else
         primary
       end
@@ -112,19 +112,19 @@ module Crlox
     # primary -> "true" | "false" | "nil" | NUMBER | STRING | "(" expression ")" | IDENTIFIER
     private def primary : Expr
       if match(TokenType::False)
-        Literal.new(false)
+        Expr::Literal.new(false)
       elsif match(TokenType::True)
-        Literal.new(true)
+        Expr::Literal.new(true)
       elsif match(TokenType::Nil)
-        Literal.new(nil)
+        Expr::Literal.new(nil)
       elsif match(TokenType::Number, TokenType::String)
-        Literal.new(previous.literal)
+        Expr::Literal.new(previous.literal)
       elsif match(TokenType::Identifier)
-        Variable.new(previous)
+        Expr::Variable.new(previous)
       elsif match(TokenType::LeftParen)
         expr = expression
         consume(TokenType::RightParen, "Expect ')' after expression.")
-        Grouping.new(expr)
+        Expr::Grouping.new(expr)
       else
         raise error(peek, "Expect expression.")
       end
@@ -137,7 +137,7 @@ module Crlox
       while match(*token_types)
         operator = previous
         right = higher_prec_matcher.call
-        expr = Binary.new(expr, operator, right)
+        expr = Expr::Binary.new(expr, operator, right)
       end
       expr
     end

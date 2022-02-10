@@ -16,23 +16,23 @@ module Crlox
       Lox.runtime_error(error)
     end
 
-    def visit(expression : Expression) : Nil
+    def visit(expression : Stmt::Expression) : Nil
       evaluate(expression.expr)
     end
 
-    def visit(print : Print) : Nil
+    def visit(print : Stmt::Print) : Nil
       value = evaluate(print.expr)
       puts stringify(value)
     end
 
-    def visit(var : Var) : Nil
+    def visit(var : Stmt::Var) : Nil
       if initializer = var.initializer
         value = evaluate(initializer)
       end
       @environment.define(var.name.lexeme, value)
     end
 
-    def visit(binary : Binary) : LoxValue
+    def visit(binary : Expr::Binary) : LoxValue
       left = evaluate(binary.left)
       right = evaluate(binary.right)
 
@@ -69,15 +69,15 @@ module Crlox
       end
     end
 
-    def visit(grouping : Grouping) : LoxValue
+    def visit(grouping : Expr::Grouping) : LoxValue
       evaluate(grouping.expression)
     end
 
-    def visit(literal : Literal) : LoxValue
+    def visit(literal : Expr::Literal) : LoxValue
       literal.value
     end
 
-    def visit(unary : Unary) : LoxValue
+    def visit(unary : Expr::Unary) : LoxValue
       right = evaluate(unary.right)
 
       case unary.operator.type
@@ -88,11 +88,11 @@ module Crlox
       end
     end
 
-    def visit(variable : Variable) : LoxValue
+    def visit(variable : Expr::Variable) : LoxValue
       @environment.get(variable.name)
     end
 
-    def visit(assign : Assign) : LoxValue
+    def visit(assign : Expr::Assign) : LoxValue
       value = evaluate(assign.value)
       @environment.assign(assign.name, value)
       value

@@ -6,9 +6,14 @@ module Crlox
 
   class Environment
     @values = Hash(String, LoxValue).new
+    @enclosing : Environment?
+
+    def initialize(@enclosing : Environment? = nil)
+    end
 
     def get(name : Token) : LoxValue
       return @values[name.lexeme] if @values.has_key?(name.lexeme)
+      return @enclosing.not_nil!.get(name) unless @enclosing.nil?
       raise RuntimeError.new(name, "Undefined variable '#{name.lexeme}'.")
     end
 
@@ -17,8 +22,13 @@ module Crlox
     end
 
     def assign(name : Token, value : LoxValue) : Nil
-      raise RuntimeError.new(name, "Undefined variable '#{name.lexeme}'.") unless @values.has_key?(name.lexeme)
-      @values[name.lexeme] = value      
+      if @values.has_key?(name.lexeme)
+        @values[name.lexeme] = value
+      elsif enclosing = @enclosing
+        enclosing.assign(name, value)
+      else
+        raise RuntimeError.new(name, "Undefined variable '#{name.lexeme}'.")
+      end
     end
   end
 end

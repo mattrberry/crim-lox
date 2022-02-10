@@ -8,6 +8,7 @@ module Crlox
       abstract def visit(expression : Expression) : T
       abstract def visit(print : Print) : T
       abstract def visit(var : Var) : T
+      abstract def visit(block : Block)
     end
 
     def accept(visitor : Visitor(T)) : T forall T
@@ -39,6 +40,15 @@ module Crlox
       def_equals_and_hash @name, @initializer
 
       def initialize(@name : Token, @initializer : Expr?)
+      end
+    end
+
+    class Block < Stmt
+      getter statements : Array(Stmt)
+
+      def_equals_and_hash @statements
+
+      def initialize(@statements : Array(Stmt))
       end
     end
   end

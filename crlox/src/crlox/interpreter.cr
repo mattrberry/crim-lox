@@ -32,6 +32,10 @@ module Crlox
       @environment.define(var.name.lexeme, value)
     end
 
+    def visit(block : Stmt::Block) : Nil
+      execute_block(block.statements, Environment.new(@environment))
+    end
+
     def visit(binary : Expr::Binary) : LoxValue
       left = evaluate(binary.left)
       right = evaluate(binary.right)
@@ -114,6 +118,16 @@ module Crlox
 
     private def execute(stmt : Stmt) : Nil
       stmt.accept(self)
+    end
+
+    private def execute_block(statements : Array(Stmt), environment : Environment) : Nil
+      previous_env = @environment
+      begin
+        @environment = environment
+        statements.each { |statement| execute(statement) }
+      ensure
+        @environment = previous_env
+      end
     end
 
     private def truthy?(object : LoxValue) : Bool

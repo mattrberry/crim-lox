@@ -38,13 +38,22 @@ module Crlox
       Stmt::Var.new(name, initializer)
     end
 
-    # statement -> exprStmt | printStmt
+    # statement -> exprStmt | printStmt | block
     def statement : Stmt
       if match(TokenType::Print)
         print_statement
+      elsif match(TokenType::LeftBrace)
+        Stmt::Block.new(block)
       else
         expression_statement
       end
+    end
+
+    # exprStmt -> expression ";"
+    private def expression_statement : Stmt
+      expr = expression
+      consume(TokenType::Semicolon, "Expect ';' after expression.")
+      Stmt::Expression.new(expr)
     end
 
     # printStmt -> "print" expression ";"
@@ -54,11 +63,15 @@ module Crlox
       Stmt::Print.new(value)
     end
 
-    # exprStmt -> expression ";"
-    private def expression_statement : Stmt
-      expr = expression
-      consume(TokenType::Semicolon, "Expect ';' after expression.")
-      Stmt::Expression.new(expr)
+    # block -> "{" declaration* "}"
+    private def block : Array(Stmt)
+      statements = [] of Stmt
+      until check(TokenType::RightBrace) || is_at_end
+        statement = declaration
+        statements << statement unless statement.nil?
+      end
+      consume(TokenType::RightBrace, "Expect '}' after block.")
+      statements
     end
 
     # expression -> assignment

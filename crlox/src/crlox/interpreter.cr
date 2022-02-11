@@ -20,6 +20,14 @@ module Crlox
       evaluate(expression.expr)
     end
 
+    def visit(if_stmt : Stmt::If) : Nil
+      if truthy?(evaluate(if_stmt.condition))
+        execute(if_stmt.then_branch)
+      elsif else_branch = if_stmt.else_branch
+        execute(else_branch)
+      end
+    end
+
     def visit(print : Stmt::Print) : Nil
       value = evaluate(print.expr)
       puts stringify(value)

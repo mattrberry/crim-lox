@@ -6,6 +6,7 @@ module Crlox
   abstract class Stmt
     module Visitor(T)
       abstract def visit(expression : Expression) : T
+      abstract def visit(if_stmt : If) : T
       abstract def visit(print : Print) : T
       abstract def visit(var : Var) : T
       abstract def visit(block : Block)
@@ -21,6 +22,17 @@ module Crlox
       def_equals_and_hash @expr
 
       def initialize(@expr : Expr)
+      end
+    end
+
+    class If < Stmt
+      getter condition : Expr
+      getter then_branch : Stmt
+      getter else_branch : Stmt?
+
+      def_equals_and_hash @condition, @then_branch, @else_branch
+
+      def initialize(@condition : Expr, @then_branch : Stmt, @else_branch : Stmt?)
       end
     end
 

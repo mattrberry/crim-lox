@@ -38,9 +38,11 @@ module Crlox
       Stmt::Var.new(name, initializer)
     end
 
-    # statement -> exprStmt | printStmt | block
+    # statement -> exprStmt | ifStmt | printStmt | block
     def statement : Stmt
-      if match(TokenType::Print)
+      if match(TokenType::If)
+        if_statement
+      elsif match(TokenType::Print)
         print_statement
       elsif match(TokenType::LeftBrace)
         Stmt::Block.new(block)
@@ -54,6 +56,16 @@ module Crlox
       expr = expression
       consume(TokenType::Semicolon, "Expect ';' after expression.")
       Stmt::Expression.new(expr)
+    end
+
+    # ifStmt -> "if" "(" expression ")" statement ( "else" statement )?
+    def if_statement : Stmt
+      consume(TokenType::LeftParen, "Expect '(' after 'if'.")
+      condition = expression
+      consume(TokenType::RightParen, "Expect ')' after if condition.")
+      then_branch = statement()
+      else_branch = statement if match(TokenType::Else)
+      Stmt::If.new(condition, then_branch, else_branch)
     end
 
     # printStmt -> "print" expression ";"

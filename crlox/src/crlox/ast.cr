@@ -9,7 +9,8 @@ module Crlox
       abstract def visit(stmt : If) : T
       abstract def visit(stmt : Print) : T
       abstract def visit(stmt : Var) : T
-      abstract def visit(stmt : Block)
+      abstract def visit(stmt : While) : T
+      abstract def visit(stmt : Block) : T
     end
 
     def accept(visitor : Visitor(T)) : T forall T
@@ -52,6 +53,16 @@ module Crlox
       def_equals_and_hash @name, @initializer
 
       def initialize(@name : Token, @initializer : Expr?)
+      end
+    end
+
+    class While < Stmt
+      getter condition : Expr
+      getter body : Stmt
+
+      def_equals_and_hash @condition, @body
+
+      def initialize(@condition : Expr, @body : Stmt)
       end
     end
 

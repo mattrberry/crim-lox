@@ -160,48 +160,4 @@ module Crlox
       end
     end
   end
-
-  class AstPrinter
-    include Expr::Visitor(String)
-
-    def print(expr : Expr) : String
-      expr.accept(self)
-    end
-
-    def visit(expr : Binary) : String
-      parenthesize(expr.operator.lexeme, expr.left, expr.right)
-    end
-
-    def visit(expr : Grouping) : String
-      parenthesize("group", expr.expression)
-    end
-
-    def visit(expr : Literal) : String
-      if expr.value.nil?
-        "nil"
-      else
-        expr.value.to_s
-      end
-    end
-
-    def visit(expr : Unary) : String
-      parenthesize(expr.operator.lexeme, expr.right)
-    end
-
-    def visit(expr : Variable) : String
-      parenthesize("var", expr.name.lexeme)
-    end
-
-    def visit(expr : Assign) : String
-      parenthesize("=", expr.name, expr.value)
-    end
-
-    private def parenthesize(name : String, *exprs : Expr) : String
-      result = Array(String).new
-      result << "(#{name}"
-      exprs.each { |expr| result << " #{expr.accept(self)}" }
-      result << ")"
-      result.join
-    end
-  end
 end

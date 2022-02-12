@@ -33,6 +33,12 @@ module Crlox
       puts stringify(value)
     end
 
+    def visit(stmt : Stmt::While) : Nil
+      while truthy?(evaluate(stmt.condition))
+        execute(stmt.body)
+      end
+    end
+
     def visit(stmt : Stmt::Var) : Nil
       if initializer = stmt.initializer
         value = evaluate(initializer)

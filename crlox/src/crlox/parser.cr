@@ -38,12 +38,14 @@ module Crlox
       Stmt::Var.new(name, initializer)
     end
 
-    # statement -> exprStmt | ifStmt | printStmt | block
+    # statement -> exprStmt | ifStmt | printStmt | whileStmt | block
     def statement : Stmt
       if match(TokenType::If)
         if_statement
       elsif match(TokenType::Print)
         print_statement
+      elsif match(TokenType::While)
+        while_statement
       elsif match(TokenType::LeftBrace)
         Stmt::Block.new(block)
       else
@@ -73,6 +75,15 @@ module Crlox
       value = expression
       consume(TokenType::Semicolon, "Expect ';' after value.")
       Stmt::Print.new(value)
+    end
+
+    # whileStmt -> "while" "(" expression ")" statement
+    private def while_statement : Stmt
+      consume(TokenType::LeftParen, "Expect '(' after 'while'.")
+      condition = expression
+      consume(TokenType::RightParen, "Expect ')' after while condition.")
+      body = statement
+      Stmt::While.new(condition, body)
     end
 
     # block -> "{" declaration* "}"

@@ -30,7 +30,7 @@ module Crlox
     end
 
     def scan_tokens : Array(Token)
-      until is_at_end
+      until at_end?
         @start = @current
         scan_token
       end
@@ -38,7 +38,7 @@ module Crlox
       @tokens << Token.new(TokenType::EOF, "", nil, @line)
     end
 
-    def is_at_end : Bool
+    def at_end? : Bool
       @current >= @source.size
     end
 
@@ -62,7 +62,7 @@ module Crlox
       when '/'
         if match('/')
           # a comment goes until the end of the line
-          until peek == '\n' || is_at_end
+          until peek == '\n' || at_end?
             advance
           end
         else
@@ -72,9 +72,9 @@ module Crlox
       when '\n' then @line += 1
       when '"'  then string()
       else
-        if is_digit(char)
+        if digit?(char)
           number()
-        elsif is_alpha(char)
+        elsif alpha?(char)
           identifier()
         else
           Lox.error(@line, "Unexpected character.")
@@ -83,11 +83,11 @@ module Crlox
     end
 
     def string : Nil
-      until peek == '"' || is_at_end
+      until peek == '"' || at_end?
         @line += 1 if peek == '\n'
         advance
       end
-      if is_at_end
+      if at_end?
         Lox.error(@line, "Unterminated string.")
         return
       end
@@ -96,12 +96,12 @@ module Crlox
     end
 
     def number : Nil
-      while is_digit(peek)
+      while digit?(peek)
         advance
       end
-      if peek == '.' && is_digit(peek_next) # look for a fractional part
+      if peek == '.' && digit?(peek_next) # look for a fractional part
         advance                             # consume the "."
-        while is_digit(peek)
+        while digit?(peek)
           advance
         end
       end
@@ -109,7 +109,7 @@ module Crlox
     end
 
     def identifier : Nil
-      while is_alpha_numeric(peek)
+      while alpha_numeric?(peek)
         advance
       end
       add_token(KEYWORDS[@source[@start...@current]]? || TokenType::Identifier)
@@ -122,13 +122,13 @@ module Crlox
     end
 
     def match(expected : Char) : Bool
-      return false if is_at_end || @source[@current] != expected
+      return false if at_end? || @source[@current] != expected
       @current += 1
       true
     end
 
     def peek : Char
-      return '\0' if is_at_end
+      return '\0' if at_end?
       @source[@current]
     end
 
@@ -137,16 +137,16 @@ module Crlox
       @source[@current + 1]
     end
 
-    def is_digit(char : Char) : Bool
+    def digit?(char : Char) : Bool
       ('0'..'9').includes?(char)
     end
 
-    def is_alpha(char : Char) : Bool
+    def alpha?(char : Char) : Bool
       ('a'..'z').includes?(char) || ('A'..'Z').includes?(char) || char == '_'
     end
 
-    def is_alpha_numeric(char : Char) : Bool
-      is_alpha(char) || is_digit(char)
+    def alpha_numeric?(char : Char) : Bool
+      alpha?(char) || digit?(char)
     end
 
     def add_token(type : TokenType, literal : LiteralValue = nil)

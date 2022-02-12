@@ -12,7 +12,7 @@ module Crlox
 
     def parse : Program
       statements = Program.new
-      until is_at_end
+      until at_end?
         statement = declaration
         statements << statement unless statement.nil?
       end
@@ -78,7 +78,7 @@ module Crlox
     # block -> "{" declaration* "}"
     private def block : Array(Stmt)
       statements = [] of Stmt
-      until check(TokenType::RightBrace) || is_at_end
+      until check(TokenType::RightBrace) || at_end?
         statement = declaration
         statements << statement unless statement.nil?
       end
@@ -202,12 +202,12 @@ module Crlox
     end
 
     private def check(type : TokenType) : Bool
-      return false if is_at_end
+      return false if at_end?
       peek.type == type
     end
 
     private def advance : Token
-      @current += 1 unless is_at_end
+      @current += 1 unless at_end?
       previous
     end
 
@@ -219,7 +219,7 @@ module Crlox
       @tokens[@current - 1]
     end
 
-    private def is_at_end : Bool
+    private def at_end? : Bool
       peek.type == TokenType::EOF
     end
 
@@ -235,7 +235,7 @@ module Crlox
 
     private def synchronize : Nil
       advance
-      until is_at_end
+      until at_end?
         return if previous.type == TokenType::Semicolon
         case peek.type
         when TokenType::Class, TokenType::Fun, TokenType::Var,

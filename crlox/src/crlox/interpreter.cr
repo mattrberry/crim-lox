@@ -16,107 +16,107 @@ module Crlox
       Lox.runtime_error(error)
     end
 
-    def visit(expression : Stmt::Expression) : Nil
-      evaluate(expression.expr)
+    def visit(stmt : Stmt::Expression) : Nil
+      evaluate(stmt.expr)
     end
 
-    def visit(if_stmt : Stmt::If) : Nil
-      if truthy?(evaluate(if_stmt.condition))
-        execute(if_stmt.then_branch)
-      elsif else_branch = if_stmt.else_branch
+    def visit(stmt : Stmt::If) : Nil
+      if truthy?(evaluate(stmt.condition))
+        execute(stmt.then_branch)
+      elsif else_branch = stmt.else_branch
         execute(else_branch)
       end
     end
 
-    def visit(print : Stmt::Print) : Nil
-      value = evaluate(print.expr)
+    def visit(stmt : Stmt::Print) : Nil
+      value = evaluate(stmt.expr)
       puts stringify(value)
     end
 
-    def visit(var : Stmt::Var) : Nil
-      if initializer = var.initializer
+    def visit(stmt : Stmt::Var) : Nil
+      if initializer = stmt.initializer
         value = evaluate(initializer)
       end
-      @environment.define(var.name.lexeme, value)
+      @environment.define(stmt.name.lexeme, value)
     end
 
-    def visit(block : Stmt::Block) : Nil
-      execute_block(block.statements, Environment.new(@environment))
+    def visit(stmt : Stmt::Block) : Nil
+      execute_block(stmt.statements, Environment.new(@environment))
     end
 
-    def visit(binary : Expr::Binary) : LoxValue
-      left = evaluate(binary.left)
-      right = evaluate(binary.right)
+    def visit(expr : Expr::Binary) : LoxValue
+      left = evaluate(expr.left)
+      right = evaluate(expr.right)
 
-      case binary.operator.type
+      case expr.operator.type
       when TokenType::Greater
-        check_number_operands(binary.operator, left, right)
+        check_number_operands(expr.operator, left, right)
         left.as(Float64) > right.as(Float64)
       when TokenType::GreaterEqual
-        check_number_operands(binary.operator, left, right)
+        check_number_operands(expr.operator, left, right)
         left.as(Float64) >= right.as(Float64)
       when TokenType::Less
-        check_number_operands(binary.operator, left, right)
+        check_number_operands(expr.operator, left, right)
         left.as(Float64) < right.as(Float64)
       when TokenType::LessEqual
-        check_number_operands(binary.operator, left, right)
+        check_number_operands(expr.operator, left, right)
         left.as(Float64) <= right.as(Float64)
       when TokenType::BangEqual  then !equal?(left, right)
       when TokenType::EqualEqual then equal?(left, right)
       when TokenType::Minus
-        check_number_operands(binary.operator, left, right)
+        check_number_operands(expr.operator, left, right)
         left.as(Float64) - right.as(Float64)
       when TokenType::Plus
         case {left, right}
         when {Float64, Float64} then left + right
         when {String, String}   then left + right
-        else                         raise RuntimeError.new(binary.operator, "Operands must be two numbers or two strings.")
+        else                         raise RuntimeError.new(expr.operator, "Operands must be two numbers or two strings.")
         end
       when TokenType::Slash
-        check_number_operands(binary.operator, left, right)
+        check_number_operands(expr.operator, left, right)
         left.as(Float64) / right.as(Float64)
       when TokenType::Star
-        check_number_operands(binary.operator, left, right)
+        check_number_operands(expr.operator, left, right)
         left.as(Float64) * right.as(Float64)
       end
     end
 
-    def visit(grouping : Expr::Grouping) : LoxValue
-      evaluate(grouping.expression)
+    def visit(expr : Expr::Grouping) : LoxValue
+      evaluate(expr.expression)
     end
 
-    def visit(literal : Expr::Literal) : LoxValue
-      literal.value
+    def visit(expr : Expr::Literal) : LoxValue
+      expr.value
     end
 
-    def visit(logical : Expr::Logical) : LoxValue
-      left = evaluate(logical.left)
-      if logical.operator.type == TokenType::Or
+    def visit(expr : Expr::Logical) : LoxValue
+      left = evaluate(expr.left)
+      if expr.operator.type == TokenType::Or
         return left if truthy?(left)
       else
         return left unless truthy?(left)
       end
-      evaluate(logical.right)
+      evaluate(expr.right)
     end
 
-    def visit(unary : Expr::Unary) : LoxValue
-      right = evaluate(unary.right)
+    def visit(expr : Expr::Unary) : LoxValue
+      right = evaluate(expr.right)
 
-      case unary.operator.type
+      case expr.operator.type
       when TokenType::Minus
-        check_number_operands(unary.operator, right)
+        check_number_operands(expr.operator, right)
         -(right.as(Float64))
       when TokenType::Bang then !truthy?(right)
       end
     end
 
-    def visit(variable : Expr::Variable) : LoxValue
-      @environment.get(variable.name)
+    def visit(expr : Expr::Variable) : LoxValue
+      @environment.get(expr.name)
     end
 
-    def visit(assign : Expr::Assign) : LoxValue
-      value = evaluate(assign.value)
-      @environment.assign(assign.name, value)
+    def visit(expr : Expr::Assign) : LoxValue
+      value = evaluate(expr.value)
+      @environment.assign(expr.name, value)
       value
     end
 

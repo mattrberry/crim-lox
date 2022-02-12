@@ -5,11 +5,11 @@ module Crlox
 
   abstract class Stmt
     module Visitor(T)
-      abstract def visit(expression : Expression) : T
-      abstract def visit(if_stmt : If) : T
-      abstract def visit(print : Print) : T
-      abstract def visit(var : Var) : T
-      abstract def visit(block : Block)
+      abstract def visit(stmt : Expression) : T
+      abstract def visit(stmt : If) : T
+      abstract def visit(stmt : Print) : T
+      abstract def visit(stmt : Var) : T
+      abstract def visit(stmt : Block)
     end
 
     def accept(visitor : Visitor(T)) : T forall T
@@ -67,13 +67,13 @@ module Crlox
 
   abstract class Expr
     module Visitor(T)
-      abstract def visit(binary : Binary) : T
-      abstract def visit(grouping : Grouping) : T
-      abstract def visit(literal : Literal) : T
-      abstract def visit(logical : Logical) : T
-      abstract def visit(unary : Unary) : T
-      abstract def visit(variable : Variable) : T
-      abstract def visit(assign : Assign) : T
+      abstract def visit(expr : Binary) : T
+      abstract def visit(expr : Grouping) : T
+      abstract def visit(expr : Literal) : T
+      abstract def visit(expr : Logical) : T
+      abstract def visit(expr : Unary) : T
+      abstract def visit(expr : Variable) : T
+      abstract def visit(expr : Assign) : T
     end
 
     def accept(visitor : Visitor(T)) : T forall T
@@ -157,32 +157,32 @@ module Crlox
       expr.accept(self)
     end
 
-    def visit(binary : Binary) : String
-      parenthesize(binary.operator.lexeme, binary.left, binary.right)
+    def visit(expr : Binary) : String
+      parenthesize(expr.operator.lexeme, expr.left, expr.right)
     end
 
-    def visit(grouping : Grouping) : String
-      parenthesize("group", grouping.expression)
+    def visit(expr : Grouping) : String
+      parenthesize("group", expr.expression)
     end
 
-    def visit(literal : Literal) : String
-      if literal.value.nil?
+    def visit(expr : Literal) : String
+      if expr.value.nil?
         "nil"
       else
-        literal.value.to_s
+        expr.value.to_s
       end
     end
 
-    def visit(unary : Unary) : String
-      parenthesize(unary.operator.lexeme, unary.right)
+    def visit(expr : Unary) : String
+      parenthesize(expr.operator.lexeme, expr.right)
     end
 
-    def visit(variable : Variable) : String
-      parenthesize("var", variable.name.lexeme)
+    def visit(expr : Variable) : String
+      parenthesize("var", expr.name.lexeme)
     end
 
-    def visit(assign : Assign) : String
-      parenthesize("=", assign.name, assign.value)
+    def visit(expr : Assign) : String
+      parenthesize("=", expr.name, expr.value)
     end
 
     private def parenthesize(name : String, *exprs : Expr) : String

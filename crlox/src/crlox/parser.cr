@@ -38,10 +38,12 @@ module Crlox
       Stmt::Var.new(name, initializer)
     end
 
-    # statement -> exprStmt | ifStmt | printStmt | whileStmt | block
+    # statement -> exprStmt | forStmt | ifStmt | printStmt | whileStmt | block
     def statement : Stmt
       if match(TokenType::If)
         if_statement
+      elsif match(TokenType::For)
+        for_statement
       elsif match(TokenType::Print)
         print_statement
       elsif match(TokenType::While)
@@ -58,6 +60,29 @@ module Crlox
       expr = expression
       consume(TokenType::Semicolon, "Expect ';' after expression.")
       Stmt::Expression.new(expr)
+    end
+
+    # forStmt -> "for "(" ( varDecl | exprStmt )? ";" expression? ";" expression? ")" statement
+    private def for_statement : Stmt
+      consume(TokenType::LeftParen, "Expect '(' after 'for'.")
+      if match(TokenType::Semicolon)
+        # no initializer
+      elsif match(TokenType::Var)
+        initializer = var_declaration
+      else
+        initializer = expression_statement
+      end
+      condition = expression unless check(TokenType::Semicolon)
+      consume(TokenType::Semicolon, "Expect ';' after loop condition.")
+      increment = expression unless check(TokenType::RightParen)
+      consume(TokenType::RightParen, "Expect ')' after for clauses.")
+      body = statement
+      # Desugaring
+      body = Stmt::Block.new([body, Stmt::Expression.new(increment)]) if increment
+      condition ||= Expr::Literal.new(true)
+      body = Stmt::While.new(condition, body)
+      body = Stmt::Block.new([initializer, body]) if initializer
+      body
     end
 
     # ifStmt -> "if" "(" expression ")" statement ( "else" statement )?

@@ -89,6 +89,16 @@ module Crlox
       literal.value
     end
 
+    def visit(logical : Expr::Logical) : LoxValue
+      left = evaluate(logical.left)
+      if logical.operator.type == TokenType::Or
+        return left if truthy?(left)
+      else
+        return left unless truthy?(left)
+      end
+      evaluate(logical.right)
+    end
+
     def visit(unary : Expr::Unary) : LoxValue
       right = evaluate(unary.right)
 

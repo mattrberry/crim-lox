@@ -70,6 +70,7 @@ module Crlox
       abstract def visit(binary : Binary) : T
       abstract def visit(grouping : Grouping) : T
       abstract def visit(literal : Literal) : T
+      abstract def visit(logical : Logical) : T
       abstract def visit(unary : Unary) : T
       abstract def visit(variable : Variable) : T
       abstract def visit(assign : Assign) : T
@@ -105,6 +106,17 @@ module Crlox
       def_equals_and_hash @value
 
       def initialize(@value : LiteralValue)
+      end
+    end
+
+    class Logical < Expr
+      getter left : Expr
+      getter operator : Token
+      getter right : Expr
+
+      def_equals_and_hash @left, @operator, @right
+
+      def initialize(@left : Expr, @operator : Token, @right : Expr)
       end
     end
 

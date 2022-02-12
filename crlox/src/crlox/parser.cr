@@ -91,9 +91,9 @@ module Crlox
       assignment
     end
 
-    # assignment -> IDENTIFIER "=" assignment | equality
+    # assignment -> IDENTIFIER "=" assignment | logic_or
     private def assignment : Expr
-      expr = equality
+      expr = or
       if match(TokenType::Equal)
         equals = previous
         value = assignment
@@ -101,6 +101,16 @@ module Crlox
         error(equals, "Invalid assignment target.")
       end
       expr
+    end
+
+    # logic_or -> logic_and ( "or" logic_and )*
+    private def or : Expr
+      left_associative_logical_binop(->and, TokenType::Or)
+    end
+
+    # logic_and -> equality ( "and" equality )*
+    private def and : Expr
+      left_associative_logical_binop(->equality, TokenType::And)
     end
 
     # equality -> comparison ( ( "!=" | "==" ) comparison )*
@@ -163,6 +173,20 @@ module Crlox
         operator = previous
         right = higher_prec_matcher.call
         expr = Expr::Binary.new(expr, operator, right)
+      end
+      expr
+    end
+
+    # Matches a left-associative logical binop operation, where the *higher_prec_matcher* is the matcher
+    # for the higher level of precedence, and *token_types* are the acceptable operators. This is distinct
+    # from the left_associative_binop method because Expr::Logical is a separate type of expression, and I
+    # couldn't find a way to make Crystal accept the class as an argument here.
+    private def left_associative_logical_binop(higher_prec_matcher : -> Expr, *token_types : TokenType) : Expr
+      expr = higher_prec_matcher.call
+      while match(*token_types)
+        operator = previous
+        right = higher_prec_matcher.call
+        expr = Expr::Logical.new(expr, operator, right)
       end
       expr
     end

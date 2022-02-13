@@ -10,4 +10,7 @@ module Crlox
     def initialize(@token : Token, @message : String?)
     end
   end
+
+  class Break < Exception
+  end
 end

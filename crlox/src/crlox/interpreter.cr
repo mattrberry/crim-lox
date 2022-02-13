@@ -37,6 +37,7 @@ module Crlox
       while truthy?(evaluate(stmt.condition))
         execute(stmt.body)
       end
+    rescue e : Break
     end
 
     def visit(stmt : Stmt::Var) : Nil
@@ -48,6 +49,10 @@ module Crlox
 
     def visit(stmt : Stmt::Block) : Nil
       execute_block(stmt.statements, Environment.new(@environment))
+    end
+
+    def visit(stmt : Stmt::Break) : Nil
+      raise Break.new
     end
 
     def visit(expr : Expr::Binary) : LoxValue

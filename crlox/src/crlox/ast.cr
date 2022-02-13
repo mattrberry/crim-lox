@@ -11,6 +11,7 @@ module Crlox
       abstract def visit(stmt : Var) : T
       abstract def visit(stmt : While) : T
       abstract def visit(stmt : Block) : T
+      abstract def visit(stmt : Break) : T
     end
 
     def accept(visitor : Visitor(T)) : T forall T
@@ -73,6 +74,9 @@ module Crlox
 
       def initialize(@statements : Array(Stmt))
       end
+    end
+
+    class Break < Stmt
     end
   end
 

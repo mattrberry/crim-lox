@@ -45,6 +45,7 @@ module Crlox
     True
     Var
     While
+    Break
 
     EOF
   end

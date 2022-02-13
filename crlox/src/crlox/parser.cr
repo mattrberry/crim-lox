@@ -50,6 +50,9 @@ module Crlox
         while_statement
       elsif match(TokenType::LeftBrace)
         Stmt::Block.new(block)
+      elsif match(TokenType::Break)
+        consume(TokenType::Semicolon, "Expect ';' after break.")
+        Stmt::Break.new
       else
         expression_statement
       end

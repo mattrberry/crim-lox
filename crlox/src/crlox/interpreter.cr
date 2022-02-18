@@ -4,11 +4,37 @@ require "./exceptions"
 require "./environment"
 
 module Crlox
+  alias LoxValue = LiteralValue | LoxCallable
+
+  abstract class LoxCallable
+    getter arity : Int32
+
+    def initialize(@arity : Int32)
+    end
+
+    abstract def call(interpreter : Interpreter, arguments : Array(LoxValue))
+
+    class Clock < LoxCallable
+      @arity = 0
+
+      def initialize : Nil
+      end
+
+      def call(interpreter : Interpreter, arguments : Array(LoxValue)) : Float64
+        Time.utc.to_unix_f
+      end
+    end
+  end
+
   class Interpreter
     include Expr::Visitor(LoxValue)
     include Stmt::Visitor(Nil)
 
-    @environment = Environment.new
+    def initialize : Nil
+      @globals = Environment.new
+      @environment = @globals
+      @globals.define("clock", LoxCallable::Clock.new)
+    end
 
     def interpret(program : Program) : Nil
       program.each { |statement| execute(statement) }
@@ -85,6 +111,18 @@ module Crlox
         check_number_operands(expr.operator, left, right)
         left.as(Float64) * right.as(Float64)
       end
+    end
+
+    def visit(expr : Expr::Call) : LoxValue
+      callee = evaluate(expr.callee)
+      unless callee.is_a?(LoxCallable)
+        raise RuntimeError.new(expr.paren, "Can only call functions and classes.")
+      end
+      unless expr.arguments.size == callee.arity
+        raise RuntimeError.new(expr.paren, "Expected #{callee.arity} arguments but got #{expr.arguments.size}.")
+      end
+      arguments = expr.arguments.map { |arg| evaluate(arg) }
+      callee.call(self, arguments)
     end
 
     def visit(expr : Expr::Grouping) : LoxValue

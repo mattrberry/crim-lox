@@ -169,15 +169,41 @@ module Crlox
       left_associative_binop(->unary, TokenType::Slash, TokenType::Star)
     end
 
-    # unary -> ( "!" | "-" ) unary | primary
+    # unary -> ( "!" | "-" ) unary | call
     private def unary : Expr
       if match(TokenType::Bang, TokenType::Minus)
         operator = previous
         right = unary
         Expr::Unary.new(operator, right)
       else
-        primary
+        call
       end
+    end
+
+    # call -> primary ( "(" arguments? ")" )*
+    private def call : Expr
+      expr = primary
+      loop do
+        if match(TokenType::LeftParen)
+          expr = finish_call(expr)
+        else
+          break
+        end
+      end
+      expr
+    end
+
+    private def finish_call(callee : Expr) : Expr
+      arguments = [] of Expr
+      unless check(TokenType::RightParen)
+        loop do
+          error(peek, "Can't have more than 255 arguments.") if arguments.size >= 255
+          arguments << expression
+          break unless match(TokenType::Comma)
+        end
+      end
+      paren = consume(TokenType::RightParen, "Expect ')' after arguments.")
+      Expr::Call.new(callee, paren, arguments)
     end
 
     # primary -> "true" | "false" | "nil" | NUMBER | STRING | "(" expression ")" | IDENTIFIER

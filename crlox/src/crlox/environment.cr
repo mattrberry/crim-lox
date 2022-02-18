@@ -1,9 +1,8 @@
 require "./token"
 require "./exceptions"
+require "./interpreter"
 
 module Crlox
-  alias LoxValue = LiteralValue
-
   class Environment
     @values = Hash(String, LoxValue).new
     @enclosing : Environment?

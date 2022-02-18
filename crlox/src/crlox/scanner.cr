@@ -100,7 +100,7 @@ module Crlox
         advance
       end
       if peek == '.' && digit?(peek_next) # look for a fractional part
-        advance                             # consume the "."
+        advance                           # consume the "."
         while digit?(peek)
           advance
         end

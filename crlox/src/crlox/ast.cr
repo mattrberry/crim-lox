@@ -79,6 +79,7 @@ module Crlox
   abstract class Expr
     module Visitor(T)
       abstract def visit(expr : Binary) : T
+      abstract def visit(expr : Call) : T
       abstract def visit(expr : Grouping) : T
       abstract def visit(expr : Literal) : T
       abstract def visit(expr : Logical) : T
@@ -99,6 +100,17 @@ module Crlox
       def_equals_and_hash @left, @operator, @right
 
       def initialize(@left : Expr, @operator : Token, @right : Expr)
+      end
+    end
+
+    class Call < Expr
+      getter callee : Expr
+      getter paren : Token
+      getter arguments : Array(Expr)
+
+      def_equals_and_hash @callee, @paren, @arguments
+
+      def initialize(@callee : Expr, @paren : Token, @arguments : Array(Expr))
       end
     end
 

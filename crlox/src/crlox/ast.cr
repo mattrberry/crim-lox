@@ -9,6 +9,7 @@ module Crlox
       abstract def visit(stmt : Function) : T
       abstract def visit(stmt : If) : T
       abstract def visit(stmt : Print) : T
+      abstract def visit(stmt : Return) : T
       abstract def visit(stmt : Var) : T
       abstract def visit(stmt : While) : T
       abstract def visit(stmt : Block) : T
@@ -55,6 +56,16 @@ module Crlox
       def_equals_and_hash @expr
 
       def initialize(@expr : Expr)
+      end
+    end
+
+    class Return < Stmt
+      getter keyword : Token
+      getter value : Expr
+
+      def_equals_and_hash @keyword, @value
+
+      def initialize(@keyword : Token, @value : Expr)
       end
     end
 

@@ -68,6 +68,8 @@ module Crlox
         for_statement
       elsif match(TokenType::Print)
         print_statement
+      elsif match(TokenType::Return)
+        return_statement
       elsif match(TokenType::While)
         while_statement
       elsif match(TokenType::LeftBrace)
@@ -122,6 +124,18 @@ module Crlox
       value = expression
       consume(TokenType::Semicolon, "Expect ';' after value.")
       Stmt::Print.new(value)
+    end
+
+    # returnStmt -> "return" expression? ";"
+    private def return_statement : Stmt
+      keyword = previous()
+      value = if check(TokenType::Semicolon)
+                Expr::Literal.new(nil)
+              else
+                expression()
+              end
+      consume(TokenType::Semicolon, "Expect ';' after return value.")
+      Stmt::Return.new(keyword, value)
     end
 
     # whileStmt -> "while" "(" expression ")" statement

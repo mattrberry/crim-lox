@@ -39,6 +39,8 @@ module Crlox
           environment.define(param.lexeme, arg)
         end
         interpreter.execute_block(@declaration.body, environment)
+      rescue e : Return
+        e.value
       end
 
       def to_s : String
@@ -85,6 +87,10 @@ module Crlox
     def visit(stmt : Stmt::Print) : Nil
       value = evaluate(stmt.expr)
       puts stringify(value)
+    end
+
+    def visit(stmt : Stmt::Return) : Nil
+      raise Return.new(evaluate(stmt.value))
     end
 
     def visit(stmt : Stmt::While) : Nil

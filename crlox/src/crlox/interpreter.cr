@@ -29,12 +29,12 @@ module Crlox
     end
 
     class LoxFunction < LoxCallable
-      def initialize(@declaration : Stmt::Function) : Nil
+      def initialize(@declaration : Stmt::Function, @closure : Environment) : Nil
         super(@declaration.params.size)
       end
 
       def call(interpreter : Interpreter, arguments : Array(LoxValue)) : LoxValue
-        environment = Environment.new(interpreter.globals)
+        environment = Environment.new(@closure)
         @declaration.params.zip(arguments) do |param, arg|
           environment.define(param.lexeme, arg)
         end
@@ -53,8 +53,6 @@ module Crlox
     include Expr::Visitor(LoxValue)
     include Stmt::Visitor(Nil)
 
-    getter globals : Environment
-
     def initialize : Nil
       @globals = Environment.new
       @environment = @globals
@@ -72,7 +70,7 @@ module Crlox
     end
 
     def visit(stmt : Stmt::Function) : Nil
-      function = LoxCallable::LoxFunction.new(stmt)
+      function = LoxCallable::LoxFunction.new(stmt, @environment)
       @environment.define(stmt.name.lexeme, function)
     end
 

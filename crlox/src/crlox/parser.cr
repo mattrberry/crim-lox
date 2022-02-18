@@ -19,9 +19,11 @@ module Crlox
       statements
     end
 
-    # declaration -> varDecl | statement
-    def declaration : Stmt?
-      if match(TokenType::Var)
+    # declaration -> funDecl | varDecl | statement
+    private def declaration : Stmt?
+      if match(TokenType::Fun)
+        function("function")
+      elsif match(TokenType::Var)
         var_declaration
       else
         statement
@@ -30,8 +32,28 @@ module Crlox
       synchronize
     end
 
+    # funDecl -> "fun" function
+    # function -> IDENTIFIER "(" parameters? ")" block
+    # parameters -> IDENTIFIER ( "," IDENTIFIER )*
+    private def function(kind : String) : Stmt::Function
+      name = consume(TokenType::Identifier, "Expect #{kind} name.")
+      consume(TokenType::LeftParen, "Expect '(' after #{kind} name.")
+      parameters = [] of Token
+      unless check(TokenType::RightParen)
+        loop do
+          error(peek, "Can't have more than 255 parameters.") if parameters.size >= 255
+          parameters << consume(TokenType::Identifier, "Expect paremeter name.")
+          break unless match(TokenType::Comma)
+        end
+      end
+      consume(TokenType::RightParen, "Expect ')' after parameters.")
+      consume(TokenType::LeftBrace, "Expect '{' before #{kind} body.")
+      body = block()
+      Stmt::Function.new(name, parameters, body)
+    end
+
     # varDecl -> "var" IDENTIFIER ( "=" expression )? ";"
-    def var_declaration : Stmt
+    private def var_declaration : Stmt
       name = consume(TokenType::Identifier, "Expect variable name.")
       initializer = expression if match(TokenType::Equal)
       consume(TokenType::Semicolon, "Expect ';' after variable declaration.")
@@ -39,7 +61,7 @@ module Crlox
     end
 
     # statement -> exprStmt | forStmt | ifStmt | printStmt | whileStmt | block
-    def statement : Stmt
+    private def statement : Stmt
       if match(TokenType::If)
         if_statement
       elsif match(TokenType::For)
@@ -86,7 +108,7 @@ module Crlox
     end
 
     # ifStmt -> "if" "(" expression ")" statement ( "else" statement )?
-    def if_statement : Stmt
+    private def if_statement : Stmt
       consume(TokenType::LeftParen, "Expect '(' after 'if'.")
       condition = expression
       consume(TokenType::RightParen, "Expect ')' after if condition.")

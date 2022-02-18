@@ -12,16 +12,37 @@ module Crlox
     def initialize(@arity : Int32)
     end
 
-    abstract def call(interpreter : Interpreter, arguments : Array(LoxValue))
+    abstract def call(interpreter : Interpreter, arguments : Array(LoxValue)) : LoxValue
 
     class Clock < LoxCallable
-      @arity = 0
-
       def initialize : Nil
+        super(0)
       end
 
       def call(interpreter : Interpreter, arguments : Array(LoxValue)) : Float64
         Time.utc.to_unix_f
+      end
+
+      def to_s : String
+        "<native fn clock"
+      end
+    end
+
+    class LoxFunction < LoxCallable
+      def initialize(@declaration : Stmt::Function) : Nil
+        super(@declaration.params.size)
+      end
+
+      def call(interpreter : Interpreter, arguments : Array(LoxValue)) : LoxValue
+        environment = Environment.new(interpreter.globals)
+        @declaration.params.zip(arguments) do |param, arg|
+          environment.define(param.lexeme, arg)
+        end
+        interpreter.execute_block(@declaration.body, environment)
+      end
+
+      def to_s : String
+        "<fn #{@declaration.name.lexeme}>"
       end
     end
   end
@@ -29,6 +50,8 @@ module Crlox
   class Interpreter
     include Expr::Visitor(LoxValue)
     include Stmt::Visitor(Nil)
+
+    getter globals : Environment
 
     def initialize : Nil
       @globals = Environment.new
@@ -44,6 +67,11 @@ module Crlox
 
     def visit(stmt : Stmt::Expression) : Nil
       evaluate(stmt.expr)
+    end
+
+    def visit(stmt : Stmt::Function) : Nil
+      function = LoxCallable::LoxFunction.new(stmt)
+      @environment.define(stmt.name.lexeme, function)
     end
 
     def visit(stmt : Stmt::If) : Nil
@@ -182,7 +210,7 @@ module Crlox
       stmt.accept(self)
     end
 
-    private def execute_block(statements : Array(Stmt), environment : Environment) : Nil
+    def execute_block(statements : Array(Stmt), environment : Environment) : Nil
       previous_env = @environment
       begin
         @environment = environment

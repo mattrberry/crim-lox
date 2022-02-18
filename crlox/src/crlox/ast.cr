@@ -6,6 +6,7 @@ module Crlox
   abstract class Stmt
     module Visitor(T)
       abstract def visit(stmt : Expression) : T
+      abstract def visit(stmt : Function) : T
       abstract def visit(stmt : If) : T
       abstract def visit(stmt : Print) : T
       abstract def visit(stmt : Var) : T
@@ -23,6 +24,17 @@ module Crlox
       def_equals_and_hash @expr
 
       def initialize(@expr : Expr)
+      end
+    end
+
+    class Function < Stmt
+      getter name : Token
+      getter params : Array(Token)
+      getter body : Array(Stmt)
+
+      def_equals_and_hash @name, @params, @body
+
+      def initialize(@name : Token, @params : Array(Token), @body : Array(Stmt))
       end
     end
 

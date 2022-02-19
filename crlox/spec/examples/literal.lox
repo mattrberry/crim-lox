@@ -1,0 +1,6 @@
+print 1;
+print false;
+print true;
+print nil;
+print "string";
+print 1.2;

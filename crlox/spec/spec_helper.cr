@@ -77,15 +77,16 @@ module Crlox
     writer.flush
     writer.close
     reader.read_timeout = 0
-    lines = Array(String).new
-    begin
-      loop do
-        lines << (reader.gets || "")
+    result = String.build do |str|
+      begin
+        loop do
+          str << reader.read_char
+        end
+      rescue
       end
-    rescue
     end
     reader.close
     LibC.dup2(dup_fd, stdout_fd)
-    lines.join("\n")
+    result
   end
 end

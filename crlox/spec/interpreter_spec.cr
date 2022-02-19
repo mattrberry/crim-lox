@@ -3,59 +3,14 @@ require "./spec_helper"
 module Crlox
   describe Interpreter do
     describe "expressions" do
-      it "evaluates literals" do
-        interpret("print 1;").should eq "1"
-        interpret("print false;").should eq "false"
-        interpret("print true;").should eq "true"
-        interpret("print nil;").should eq "nil"
-        interpret(%(print "string";)).should eq "string"
-        interpret("print 1.2;").should eq "1.2"
-      end
-
-      it "evaluates unarys" do
-        interpret("print -1;").should eq "-1"
-        interpret("print --1;").should eq "1"
-        interpret("print !true;").should eq "false"
-        interpret("print !!true;").should eq "true"
-        interpret("print !nil;").should eq "true"
-        interpret("print !0;").should eq "false"
-        interpret("print !1;").should eq "false"
-        interpret("print !-1;").should eq "false"
-      end
-
-      it "evaluates groupings" do
-        interpret("print (1);").should eq "1"
-        interpret("print ((false));").should eq "false"
-      end
-
-      it "interprets binarys" do
-        interpret("print 1 + 2;").should eq "3"
-        interpret("print 1 - 2;").should eq "-1"
-        interpret("print 1 * 2;").should eq "2"
-        interpret("print 1 / 2;").should eq "0.5"
-        interpret(%(print "1" + "2";)).should eq "12"
-        interpret("print 1 == 1;").should eq "true"
-        interpret("print 1 == 2;").should eq "false"
-        interpret("print 1 == nil;").should eq "false"
-        interpret("print 1 == false;").should eq "false"
-        interpret("print 1 == true;").should eq "false"
-        interpret(%(print 1 == "1";)).should eq "false"
-        interpret("print true == false;").should eq "false"
-        interpret("print 1 != 1;").should eq "false"
-        interpret("print 1 != 2;").should eq "true"
-        interpret("print 1 != nil;").should eq "true"
-        interpret("print 1 != true;").should eq "true"
-        interpret("print 1 != false;").should eq "true"
-        interpret(%(print 1 != "1";)).should eq "true"
-        interpret("print false != true;").should eq "true"
-        interpret("print 1 < 2;").should eq "true"
-        interpret("print 1 <= 2;").should eq "true"
-        interpret("print 1 < 1;").should eq "false"
-        interpret("print 1 <= 1;").should eq "true"
-        interpret("print 1 > 2;").should eq "false"
-        interpret("print 1 >= 2;").should eq "false"
-        interpret("print 1 > 1;").should eq "false"
-        interpret("print 1 >= 1;").should eq "true"
+      Dir["#{Dir.current}/spec/examples/*.lox"].each do |file_path|
+        in_path = Path[file_path]
+        in_str = File.read(in_path)
+        out_path = Path[in_path.dirname, in_path.basename.rpartition('.')[0] + ".out"]
+        it "evaluates #{in_path.basename}" do
+          out_str = File.exists?(out_path) ? File.read(out_path) : ""
+          interpret(in_str).should eq out_str
+        end
       end
 
       # it "raises RuntimeErrors" do

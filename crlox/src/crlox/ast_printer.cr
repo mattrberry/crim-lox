@@ -21,6 +21,10 @@ module Crlox
       print(stmt.expr) + ";"
     end
 
+    def visit(stmt : Stmt::Function) : String
+      "(defun #{stmt.name} (#{stmt.params.map &.lexeme}) #{print(body)})"
+    end
+
     def visit(stmt : Stmt::If) : String
       result = [] of String
       result << "if ("
@@ -36,6 +40,10 @@ module Crlox
 
     def visit(stmt : Stmt::Print) : String
       "print " + print(stmt.expr) + ";"
+    end
+
+    def visit(stmt : Stmt::Return) : String
+      "(return #{stmt.value})"
     end
 
     def visit(stmt : Stmt::Var) : String
@@ -59,6 +67,10 @@ module Crlox
 
     def visit(expr : Expr::Binary) : String
       parenthesize(expr.operator.lexeme, expr.left, expr.right)
+    end
+
+    def visit(expr : Expr::Call) : String
+      "(#{print(expr.callee)} #{expr.arguments.map(&.accept(self)).join(" ")}})"
     end
 
     def visit(expr : Expr::Grouping) : String

@@ -22,39 +22,42 @@ module Crlox
     end
 
     def visit(stmt : Stmt::Function) : String
-      "(defun #{stmt.name} (#{stmt.params.map &.lexeme}) #{print(body)})"
+      "(fun #{stmt.name} (#{stmt.params.map &.lexeme}) #{print(body)})"
     end
 
     def visit(stmt : Stmt::If) : String
-      result = [] of String
-      result << "if ("
-      result << print(stmt.condition)
-      result << ") "
-      result << print(stmt.then_branch)
-      if else_branch = stmt.else_branch
-        result << " else "
-        result << print(else_branch)
+      String.build do |str|
+        str << "(if ("
+        str << print(stmt.condition)
+        str << ") ("
+        str << print(stmt.then_branch)
+        str << ")"
+        if else_branch = stmt.else_branch
+          str << " ("
+          str << print(else_branch)
+          str << ")"
+        end
+        str << ")"
       end
-      result.join
     end
 
     def visit(stmt : Stmt::Print) : String
-      "print " + print(stmt.expr) + ";"
+      "print #{print(stmt.expr)};"
     end
 
     def visit(stmt : Stmt::Return) : String
-      "(return #{stmt.value})"
+      "return #{stmt.value};"
     end
 
     def visit(stmt : Stmt::Var) : String
-      result = [] of String
-      result << "var "
-      result << stmt.name.lexeme
-      if initializer = stmt.initializer
-        result << " = "
-        result << print(initializer)
+      String.build do |str|
+        str << "var "
+        str << stmt.name.lexeme
+        if initializer = stmt.initializer
+          str << " = "
+          str << print(initializer)
+        end
       end
-      result.join
     end
 
     def visit(stmt : Stmt::While) : String
@@ -102,11 +105,11 @@ module Crlox
     end
 
     private def parenthesize(name : String, *exprs : Expr) : String
-      result = Array(String).new
-      result << "(#{name}"
-      exprs.each { |expr| result << " #{expr.accept(self)}" }
-      result << ")"
-      result.join
+      String.build do |str|
+        str << "(#{name}"
+        exprs.each { |expr| str << " #{expr.accept(self)}" }
+        str << ")"
+      end
     end
   end
 end

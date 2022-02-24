@@ -15,12 +15,17 @@ module Crlox
       @globals = Environment.new
       @environment = @globals
       @globals.define("clock", LoxCallable::Clock.new)
+      @locals = Hash(Expr, Int32).new
     end
 
     def interpret(program : Program) : Nil
       program.each { |statement| execute(statement) }
     rescue error : RuntimeError
       Lox.runtime_error(error)
+    end
+
+    def resolve(expr : Expr, depth : Int) : Nil
+      @locals[expr] = depth
     end
 
     def visit(stmt : Stmt::Expression) : Nil
@@ -145,12 +150,17 @@ module Crlox
     end
 
     def visit(expr : Expr::Variable) : LoxValue
-      @environment.get(expr.name)
+      lookup_variable(expr.name, expr)
     end
 
     def visit(expr : Expr::Assign) : LoxValue
       value = evaluate(expr.value)
-      @environment.assign(expr.name, value)
+      distance = @locals[expr]?
+      if distance.nil?
+        @globals.assign(expr.name, value)
+      else
+        @environment.assign(expr.name, value, distance)
+      end
       value
     end
 
@@ -193,6 +203,15 @@ module Crlox
     private def check_number_operands(operator : Token, *operands : LoxValue) : Nil
       return if operands.all? &.is_a?(Float64)
       raise RuntimeError.new(operator, "Operand must be a number.")
+    end
+
+    private def lookup_variable(name : Token, expr : Expr) : LoxValue
+      distance = @locals[expr]?
+      if distance.nil?
+        @globals.get(name)
+      else
+        @environment.get(name.lexeme, distance)
+      end
     end
   end
 end

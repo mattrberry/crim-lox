@@ -22,7 +22,7 @@ module Crlox
     class Expression < Stmt
       getter expr : Expr
 
-      def_equals_and_hash @expr
+      def_equals @expr
 
       def initialize(@expr : Expr)
       end
@@ -33,7 +33,7 @@ module Crlox
       getter params : Array(Token)
       getter body : Array(Stmt)
 
-      def_equals_and_hash @name, @params, @body
+      def_equals @name, @params, @body
 
       def initialize(@name : Token, @params : Array(Token), @body : Array(Stmt))
       end
@@ -44,7 +44,7 @@ module Crlox
       getter then_branch : Stmt
       getter else_branch : Stmt?
 
-      def_equals_and_hash @condition, @then_branch, @else_branch
+      def_equals @condition, @then_branch, @else_branch
 
       def initialize(@condition : Expr, @then_branch : Stmt, @else_branch : Stmt?)
       end
@@ -53,7 +53,7 @@ module Crlox
     class Print < Stmt
       getter expr : Expr
 
-      def_equals_and_hash @expr
+      def_equals @expr
 
       def initialize(@expr : Expr)
       end
@@ -63,7 +63,7 @@ module Crlox
       getter keyword : Token
       getter value : Expr
 
-      def_equals_and_hash @keyword, @value
+      def_equals @keyword, @value
 
       def initialize(@keyword : Token, @value : Expr)
       end
@@ -73,7 +73,7 @@ module Crlox
       getter name : Token
       getter initializer : Expr?
 
-      def_equals_and_hash @name, @initializer
+      def_equals @name, @initializer
 
       def initialize(@name : Token, @initializer : Expr?)
       end
@@ -83,7 +83,7 @@ module Crlox
       getter condition : Expr
       getter body : Stmt
 
-      def_equals_and_hash @condition, @body
+      def_equals @condition, @body
 
       def initialize(@condition : Expr, @body : Stmt)
       end
@@ -92,7 +92,7 @@ module Crlox
     class Block < Stmt
       getter statements : Array(Stmt)
 
-      def_equals_and_hash @statements
+      def_equals @statements
 
       def initialize(@statements : Array(Stmt))
       end
@@ -120,7 +120,7 @@ module Crlox
       getter operator : Token
       getter right : Expr
 
-      def_equals_and_hash @left, @operator, @right
+      def_equals @left, @operator, @right
 
       def initialize(@left : Expr, @operator : Token, @right : Expr)
       end
@@ -131,7 +131,7 @@ module Crlox
       getter paren : Token
       getter arguments : Array(Expr)
 
-      def_equals_and_hash @callee, @paren, @arguments
+      def_equals @callee, @paren, @arguments
 
       def initialize(@callee : Expr, @paren : Token, @arguments : Array(Expr))
       end
@@ -140,7 +140,7 @@ module Crlox
     class Grouping < Expr
       getter expression : Expr
 
-      def_equals_and_hash @expression
+      def_equals @expression
 
       def initialize(@expression : Expr)
       end
@@ -149,7 +149,7 @@ module Crlox
     class Literal < Expr
       getter value : LiteralValue
 
-      def_equals_and_hash @value
+      def_equals @value
 
       def initialize(@value : LiteralValue)
       end
@@ -160,7 +160,7 @@ module Crlox
       getter operator : Token
       getter right : Expr
 
-      def_equals_and_hash @left, @operator, @right
+      def_equals @left, @operator, @right
 
       def initialize(@left : Expr, @operator : Token, @right : Expr)
       end
@@ -170,7 +170,7 @@ module Crlox
       getter operator : Token
       getter right : Expr
 
-      def_equals_and_hash @operator, @right
+      def_equals @operator, @right
 
       def initialize(@operator : Token, @right : Expr)
       end
@@ -179,7 +179,7 @@ module Crlox
     class Variable < Expr
       getter name : Token
 
-      def_equals_and_hash @name
+      def_equals @name
 
       def initialize(@name : Token)
       end
@@ -189,7 +189,7 @@ module Crlox
       getter name : Token
       getter value : Expr
 
-      def_equals_and_hash @name, @value
+      def_equals @name, @value
 
       def initialize(@name : Token, @value : Expr)
       end

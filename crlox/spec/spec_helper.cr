@@ -62,9 +62,7 @@ module Crlox
 
   # Returns resulting stdout of program.
   def interpret(source : String) : String
-    program = parse(source)
-    raise "Cannot parse #{source}" unless program
-    capture_stdout { Interpreter.new.interpret(program) }
+    capture_stdout { Lox.new.run(source) }
   end
 
   # Capture stdout and return it as a string. Only reads until the final newline.

@@ -2,6 +2,7 @@ require "./token"
 require "./token_type"
 require "./scanner"
 require "./parser"
+require "./resolver"
 require "./interpreter"
 
 module Crlox
@@ -54,6 +55,9 @@ module Crlox
       tokens = Scanner.new(source).scan_tokens
       program = Parser.new(tokens).parse
       return if @@had_error || program.nil?
+      resolver = Resolver.new(@interpreter)
+      resolver.resolve(program)
+      return if @@had_error
       @interpreter.interpret(program)
     end
   end

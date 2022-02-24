@@ -1,11 +1,12 @@
 require "./token"
 require "./ast"
 require "./callable"
+require "./class"
 require "./exceptions"
 require "./environment"
 
 module Crlox
-  alias LoxValue = LiteralValue | LoxCallable
+  alias LoxValue = LiteralValue | LoxCallable | LoxClass | LoxInstance
 
   class Interpreter
     include Expr::Visitor(LoxValue)
@@ -71,6 +72,12 @@ module Crlox
       execute_block(stmt.statements, Environment.new(@environment))
     end
 
+    def visit(stmt : Stmt::Class) : Nil
+      @environment.define(stmt.name.lexeme, nil)
+      klass = LoxClass.new(stmt.name.lexeme)
+      @environment.assign(stmt.name, klass)
+    end
+
     def visit(expr : Expr::Binary) : LoxValue
       left = evaluate(expr.left)
       right = evaluate(expr.right)
@@ -110,7 +117,7 @@ module Crlox
 
     def visit(expr : Expr::Call) : LoxValue
       callee = evaluate(expr.callee)
-      unless callee.is_a?(LoxCallable)
+      unless callee.is_a?(LoxCallable) || callee.is_a?(LoxClass)
         raise RuntimeError.new(expr.paren, "Can only call functions and classes.")
       end
       unless expr.arguments.size == callee.arity

@@ -13,6 +13,7 @@ module Crlox
       abstract def visit(stmt : Var) : T
       abstract def visit(stmt : While) : T
       abstract def visit(stmt : Block) : T
+      abstract def visit(stmt : Class) : T
     end
 
     def accept(visitor : Visitor(T)) : T forall T
@@ -95,6 +96,16 @@ module Crlox
       def_equals @statements
 
       def initialize(@statements : Array(Stmt))
+      end
+    end
+
+    class Class < Stmt
+      getter name : Token
+      getter methods : Array(Function)
+
+      def_equals @name, @methods
+
+      def initialize(@name : Token, @methods : Array(Stmt))
       end
     end
   end

@@ -19,9 +19,12 @@ module Crlox
       statements
     end
 
-    # declaration -> funDecl | varDecl | statement
+    # declaration -> classDecl | funDecl | varDecl | statement
+    # funDecl -> "fun" function
     private def declaration : Stmt?
-      if match(TokenType::Fun)
+      if match(TokenType::Class)
+        class_declaration
+      elsif match(TokenType::Fun)
         function("function")
       elsif match(TokenType::Var)
         var_declaration
@@ -32,7 +35,18 @@ module Crlox
       synchronize
     end
 
-    # funDecl -> "fun" function
+    # classDecl -> "class" IDENTIFIER "{" function* "}"
+    private def class_declaration : Stmt::Class
+      name = consume(TokenType::Identifier, "Expect class name.")
+      consume(TokenType::LeftBrace, "Expect '{' before class body.")
+      methods = [] of Stmt::Function
+      until check(TokenType::RightBrace) || at_end?
+        methods << function("method")
+      end
+      consume(TokenType::RightBrace, "Expect '}' after class body.")
+      Stmt::Class.new(name, methods)
+    end
+
     # function -> IDENTIFIER "(" parameters? ")" block
     # parameters -> IDENTIFIER ( "," IDENTIFIER )*
     private def function(kind : String) : Stmt::Function

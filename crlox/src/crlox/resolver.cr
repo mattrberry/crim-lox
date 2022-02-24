@@ -65,6 +65,11 @@ module Crlox
       resolve(stmt.body)
     end
 
+    def visit(stmt : Stmt::Class) : Nil
+      declare(stmt.name)
+      define(stmt.name)
+    end
+
     def visit(expr : Expr::Variable) : Nil
       if !@scopes.empty? && @scopes.last[expr.name.lexeme]? == false
         Lox.error(expr.name, "Can't read local variable in its own initializer.")

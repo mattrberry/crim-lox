@@ -82,6 +82,11 @@ module Crlox
       resolve_local(expr, expr.name)
     end
 
+    def visit(expr : Expr::Set) : Nil
+      resolve(expr.value)
+      resolve(expr.object)
+    end
+
     def visit(expr : Expr::Binary) : Nil
       resolve(expr.left)
       resolve(expr.right)
@@ -90,6 +95,10 @@ module Crlox
     def visit(expr : Expr::Call) : Nil
       resolve(expr.callee)
       expr.arguments.each { |arg| resolve(arg) }
+    end
+
+    def visit(expr : Expr::Get) : Nil
+      resolve(expr.object)
     end
 
     def visit(expr : Expr::Grouping) : Nil

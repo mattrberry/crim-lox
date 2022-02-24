@@ -183,7 +183,11 @@ module Crlox
       if match(TokenType::Equal)
         equals = previous
         value = assignment
-        return Expr::Assign.new(expr.name, value) if expr.is_a?(Expr::Variable)
+        if expr.is_a?(Expr::Variable)
+          return Expr::Assign.new(expr.name, value)
+        elsif expr.is_a?(Expr::Get)
+          return Expr::Set.new(expr.object, expr.name, value)
+        end
         error(equals, "Invalid assignment target.")
       end
       expr
@@ -230,12 +234,15 @@ module Crlox
       end
     end
 
-    # call -> primary ( "(" arguments? ")" )*
+    # call -> primary ( "(" arguments? ")" | "." IDENTIFIER )*
     private def call : Expr
       expr = primary
       loop do
         if match(TokenType::LeftParen)
           expr = finish_call(expr)
+        elsif match(TokenType::Dot)
+          name = consume(TokenType::Identifier, "Expect property name after '.'.")
+          expr = Expr::Get.new(expr, name)
         else
           break
         end

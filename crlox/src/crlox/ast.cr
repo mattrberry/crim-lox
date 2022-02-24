@@ -114,12 +114,14 @@ module Crlox
     module Visitor(T)
       abstract def visit(expr : Binary) : T
       abstract def visit(expr : Call) : T
+      abstract def visit(expr : Get) : T
       abstract def visit(expr : Grouping) : T
       abstract def visit(expr : Literal) : T
       abstract def visit(expr : Logical) : T
       abstract def visit(expr : Unary) : T
       abstract def visit(expr : Variable) : T
       abstract def visit(expr : Assign) : T
+      abstract def visit(expr : Set) : T
     end
 
     def accept(visitor : Visitor(T)) : T forall T
@@ -145,6 +147,16 @@ module Crlox
       def_equals @callee, @paren, @arguments
 
       def initialize(@callee : Expr, @paren : Token, @arguments : Array(Expr))
+      end
+    end
+
+    class Get < Expr
+      getter object : Expr
+      getter name : Token
+
+      def_equals @object, @name
+
+      def initialize(@object : Expr, @name : Token)
       end
     end
 
@@ -203,6 +215,17 @@ module Crlox
       def_equals @name, @value
 
       def initialize(@name : Token, @value : Expr)
+      end
+    end
+
+    class Set < Expr
+      getter object : Expr
+      getter name : Token
+      getter value : Expr
+
+      def_equals @object, @name, @value
+
+      def initialize(@object : Expr, @name : Token, @value : Expr)
       end
     end
   end

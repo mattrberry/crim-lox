@@ -127,6 +127,24 @@ module Crlox
       callee.call(self, arguments)
     end
 
+    def visit(expr : Expr::Get) : LoxValue
+      object = evaluate(expr.object)
+      unless object.is_a?(LoxInstance)
+        raise RuntimeError.new(expr.name, "Only instances have properties.")
+      end
+      object.get(expr.name)
+    end
+
+    def visit(expr : Expr::Set) : LoxValue
+      object = evaluate(expr.object)
+      unless object.is_a?(LoxInstance)
+        raise RuntimeError.new(expr.name, "Only instances have fields.")
+      end
+      value = evaluate(expr.value)
+      object.set(expr.name, value)
+      value
+    end
+
     def visit(expr : Expr::Grouping) : LoxValue
       evaluate(expr.expression)
     end

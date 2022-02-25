@@ -9,6 +9,7 @@ module Crlox
     enum FunctionType
       None
       Function
+      Method
     end
 
     @scopes = Array(Hash(String, Bool)).new
@@ -68,6 +69,9 @@ module Crlox
     def visit(stmt : Stmt::Class) : Nil
       declare(stmt.name)
       define(stmt.name)
+      stmt.methods.each do |method|
+        resolve_function(method, FunctionType::Method)
+      end
     end
 
     def visit(expr : Expr::Variable) : Nil

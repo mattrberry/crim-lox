@@ -74,7 +74,14 @@ module Crlox
 
     def visit(stmt : Stmt::Class) : Nil
       @environment.define(stmt.name.lexeme, nil)
-      klass = LoxClass.new(stmt.name.lexeme)
+
+      methods = Hash(String, LoxCallable::LoxFunction).new
+      stmt.methods.each do |method|
+        function = LoxCallable::LoxFunction.new(method, @environment)
+        methods[method.name.lexeme] = function
+      end
+
+      klass = LoxClass.new(stmt.name.lexeme, methods)
       @environment.assign(stmt.name, klass)
     end
 

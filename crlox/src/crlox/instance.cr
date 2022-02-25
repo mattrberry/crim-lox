@@ -8,10 +8,13 @@ module Crlox
     end
 
     def get(name : Token) : LoxValue
-      unless @fields.has_key?(name.lexeme)
+      if @fields.has_key?(name.lexeme)
+        @fields[name.lexeme]
+      elsif method = @class.find_method(name.lexeme)
+        method
+      else
         raise RuntimeError.new(name, "Undefined property '#{name.lexeme}'.")
       end
-      @fields[name.lexeme]
     end
 
     def set(name : Token, value : LoxValue) : Nil

@@ -12,8 +12,14 @@ module Crlox
       Method
     end
 
+    enum ClassType
+      None
+      Class
+    end
+
     @scopes = Array(Hash(String, Bool)).new
     @current_function_type = FunctionType::None
+    @current_class_type = ClassType::None
 
     def initialize(@interpreter : Interpreter)
     end
@@ -67,11 +73,19 @@ module Crlox
     end
 
     def visit(stmt : Stmt::Class) : Nil
+      enclosing_class_type = @current_class_type
+      @current_class_type = ClassType::Class
+
       declare(stmt.name)
       define(stmt.name)
+      begin_scope
+      @scopes.last["this"] = true
       stmt.methods.each do |method|
         resolve_function(method, FunctionType::Method)
       end
+      end_scope
+
+      @current_class_type = enclosing_class_type
     end
 
     def visit(expr : Expr::Variable) : Nil
@@ -119,6 +133,14 @@ module Crlox
 
     def visit(expr : Expr::Unary) : Nil
       resolve(expr.right)
+    end
+
+    def visit(expr : Expr::This) : Nil
+      if @current_class_type == ClassType::None
+        Lox.error(expr.keyword, "Can't use 'this' outside of a class.")
+      else
+        resolve_local(expr, expr.keyword)
+      end
     end
 
     private def begin_scope : Nil

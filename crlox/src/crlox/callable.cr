@@ -36,6 +36,12 @@ module Crlox
         e.value
       end
 
+      def bind(instance : LoxInstance) : LoxFunction
+        env = Environment.new(@closure)
+        env.define("this", instance)
+        LoxFunction.new(@declaration, env)
+      end
+
       def to_s : String
         "<fn #{@declaration.name.lexeme}>"
       end

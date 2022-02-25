@@ -273,6 +273,8 @@ module Crlox
         Expr::Literal.new(nil)
       elsif match(TokenType::Number, TokenType::String)
         Expr::Literal.new(previous.literal)
+      elsif match(TokenType::This)
+        Expr::This.new(previous)
       elsif match(TokenType::Identifier)
         Expr::Variable.new(previous)
       elsif match(TokenType::LeftParen)

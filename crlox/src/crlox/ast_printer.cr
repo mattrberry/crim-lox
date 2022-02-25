@@ -17,6 +17,10 @@ module Crlox
       program.map(&.accept(self)).join('\n')
     end
 
+    def visit(stmt : Stmt::Class) : String
+      "(class #{stmt.name} #{stmt.methods.map { |method| visit(method) }})"
+    end
+
     def visit(stmt : Stmt::Expression) : String
       print(stmt.expr) + ";"
     end
@@ -102,6 +106,18 @@ module Crlox
 
     def visit(expr : Expr::Assign) : String
       "(#{expr.name.lexeme} = #{print(expr.value)})"
+    end
+
+    def visit(expr : Expr::Get) : String
+      "(#{visit(expr.object)}.#{expr.name.lexeme})"
+    end
+
+    def visit(expr : Expr::Set) : String
+      "(#{visit(expr.object)}.#{expr.name.lexeme} = #{visit(expr.value)})"
+    end
+
+    def visit(expr : Expr::This) : String
+      expr.keyword.lexeme
     end
 
     private def parenthesize(name : String, *exprs : Expr) : String

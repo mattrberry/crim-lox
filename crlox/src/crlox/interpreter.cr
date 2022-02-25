@@ -196,6 +196,10 @@ module Crlox
       value
     end
 
+    def visit(expr : Expr::This) : LoxValue
+      lookup_variable(expr.keyword, expr)
+    end
+
     private def stringify(value : LoxValue) : String
       case value
       when Nil then "nil"

@@ -11,7 +11,7 @@ module Crlox
       if @fields.has_key?(name.lexeme)
         @fields[name.lexeme]
       elsif method = @class.find_method(name.lexeme)
-        method
+        method.bind(self)
       else
         raise RuntimeError.new(name, "Undefined property '#{name.lexeme}'.")
       end

@@ -144,7 +144,7 @@ module Crlox
     private def return_statement : Stmt
       keyword = previous()
       value = if check(TokenType::Semicolon)
-                Expr::Literal.new(nil)
+                nil
               else
                 expression()
               end

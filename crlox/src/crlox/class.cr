@@ -7,11 +7,15 @@ module Crlox
     getter methods : Hash(String, LoxFunction)
 
     def initialize(@name : String, @methods : Hash(String, LoxFunction))
-      super(0)
+      super(find_method("init").try(&.arity) || 0)
     end
 
     def call(interpreter : Interpreter, arguments : Array(LoxValue)) : LoxValue
-      LoxInstance.new(self)
+      instance = LoxInstance.new(self)
+      if initializer = find_method("init")
+        initializer.bind(instance).call(interpreter, arguments)
+      end
+      instance
     end
 
     def find_method(name : String) : LoxFunction?

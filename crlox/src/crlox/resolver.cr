@@ -9,6 +9,7 @@ module Crlox
     enum FunctionType
       None
       Function
+      Initializer
       Method
     end
 
@@ -64,7 +65,12 @@ module Crlox
       if @current_function_type == FunctionType::None
         Lox.error(stmt.keyword, "Can't return from top-level code.")
       end
-      resolve(stmt.value.not_nil!) unless stmt.value.nil?
+      if value = stmt.value
+        if @current_function_type == FunctionType::Initializer
+          Lox.error(stmt.keyword, "Can't return a value from an initializer.")
+        end
+        resolve(value)
+      end
     end
 
     def visit(stmt : Stmt::While) : Nil
@@ -81,7 +87,12 @@ module Crlox
       begin_scope
       @scopes.last["this"] = true
       stmt.methods.each do |method|
-        resolve_function(method, FunctionType::Method)
+        function_type = if method.name.lexeme == "init"
+                          FunctionType::Initializer
+                        else
+                          FunctionType::Method
+                        end
+        resolve_function(method, function_type)
       end
       end_scope
 

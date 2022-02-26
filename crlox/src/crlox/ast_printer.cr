@@ -50,7 +50,7 @@ module Crlox
     end
 
     def visit(stmt : Stmt::Return) : String
-      "return #{stmt.value};"
+      "return #{print(stmt.value)};"
     end
 
     def visit(stmt : Stmt::Var) : String

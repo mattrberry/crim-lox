@@ -34,7 +34,7 @@ module Crlox
     end
 
     def visit(stmt : Stmt::Function) : Nil
-      function = LoxCallable::LoxFunction.new(stmt, @environment)
+      function = LoxCallable::LoxFunction.new(stmt, @environment, false)
       @environment.define(stmt.name.lexeme, function)
     end
 
@@ -52,7 +52,7 @@ module Crlox
     end
 
     def visit(stmt : Stmt::Return) : Nil
-      raise Return.new(evaluate(stmt.value))
+      raise Return.new(evaluate(stmt.value.not_nil!)) unless stmt.value.nil?
     end
 
     def visit(stmt : Stmt::While) : Nil
@@ -77,7 +77,7 @@ module Crlox
 
       methods = Hash(String, LoxCallable::LoxFunction).new
       stmt.methods.each do |method|
-        function = LoxCallable::LoxFunction.new(method, @environment)
+        function = LoxCallable::LoxFunction.new(method, @environment, method.name.lexeme == "init")
         methods[method.name.lexeme] = function
       end
 

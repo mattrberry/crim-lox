@@ -22,7 +22,7 @@ module Crlox
     end
 
     class LoxFunction < LoxCallable
-      def initialize(@declaration : Stmt::Function, @closure : Environment) : Nil
+      def initialize(@declaration : Stmt::Function, @closure : Environment, @is_initializer : Bool) : Nil
         super(@declaration.params.size)
       end
 
@@ -32,14 +32,15 @@ module Crlox
           environment.define(param.lexeme, arg)
         end
         interpreter.execute_block(@declaration.body, environment)
+        @closure.get("this", 0) if @is_initializer
       rescue e : Return
-        e.value
+        @is_initializer ? @closure.get("this", 0) : e.value
       end
 
       def bind(instance : LoxInstance) : LoxFunction
         env = Environment.new(@closure)
         env.define("this", instance)
-        LoxFunction.new(@declaration, env)
+        LoxFunction.new(@declaration, env, @is_initializer)
       end
 
       def to_s : String

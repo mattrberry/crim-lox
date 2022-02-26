@@ -87,3 +87,31 @@ class Thing {
 
 var callback = Thing().getCallback();
 callback();
+
+class Foo {
+  init() {
+    print this;
+  }
+}
+
+var foo = Foo();
+print foo.init();
+
+class Bar {
+  init() {
+    return;
+  }
+}
+
+print Bar();
+
+class Baz {
+  init(a, b) {
+    if (a + b == 3) {
+      return;
+    }
+  }
+}
+
+print Baz(1, 2);
+print Baz(0, 1);

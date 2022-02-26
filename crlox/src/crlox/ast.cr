@@ -62,11 +62,11 @@ module Crlox
 
     class Return < Stmt
       getter keyword : Token
-      getter value : Expr
+      getter value : Expr?
 
       def_equals @keyword, @value
 
-      def initialize(@keyword : Token, @value : Expr)
+      def initialize(@keyword : Token, @value : Expr?)
       end
     end
 

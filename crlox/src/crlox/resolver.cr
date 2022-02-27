@@ -16,6 +16,7 @@ module Crlox
     enum ClassType
       None
       Class
+      Subclass
     end
 
     @scopes = Array(Hash(String, Bool)).new
@@ -89,7 +90,10 @@ module Crlox
         if superclass.name == stmt.name
           Lox.error(superclass.name, "A class can't inherit from itself.")
         end
+        @current_class_type = ClassType::Subclass
         resolve(superclass)
+        begin_scope
+        @scopes.last["super"] = true
       end
 
       begin_scope
@@ -102,8 +106,9 @@ module Crlox
                         end
         resolve_function(method, function_type)
       end
-
       end_scope
+
+      end_scope if stmt.superclass
 
       @current_class_type = enclosing_class_type
     end
@@ -161,6 +166,15 @@ module Crlox
       else
         resolve_local(expr, expr.keyword)
       end
+    end
+
+    def visit(expr : Expr::Super) : Nil
+      case @current_class_type
+      in ClassType::None     then Lox.error(expr.keyword, "Can't use 'super' outside of a class.")
+      in ClassType::Class    then Lox.error(expr.keyword, "Can't use 'super' in a class with no superclass.")
+      in ClassType::Subclass then nil
+      end
+      resolve_local(expr, expr.keyword)
     end
 
     private def begin_scope : Nil

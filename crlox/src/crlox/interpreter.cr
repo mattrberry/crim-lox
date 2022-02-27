@@ -82,6 +82,11 @@ module Crlox
 
       @environment.define(stmt.name.lexeme, nil)
 
+      if superclass
+        @environment = Environment.new(@environment)
+        @environment.define("super", superclass)
+      end
+
       methods = Hash(String, LoxCallable::LoxFunction).new
       stmt.methods.each do |method|
         function = LoxCallable::LoxFunction.new(method, @environment, method.name.lexeme == "init")
@@ -89,6 +94,9 @@ module Crlox
       end
 
       klass = LoxClass.new(stmt.name.lexeme, superclass, methods)
+
+      @environment = @environment.enclosing.not_nil! if superclass
+
       @environment.assign(stmt.name, klass)
     end
 
@@ -205,6 +213,17 @@ module Crlox
 
     def visit(expr : Expr::This) : LoxValue
       lookup_variable(expr.keyword, expr)
+    end
+
+    def visit(expr : Expr::Super) : LoxValue
+      distance = @locals[expr]
+      superclass = @environment.get("super", distance).as(LoxClass)
+      object = @environment.get("this", distance - 1).as(LoxInstance)
+      method = superclass.find_method(expr.method.lexeme)
+      if method.nil?
+        raise RuntimeError.new(expr.method, "Undefined property '#{expr.method.lexeme}'.")
+      end
+      method.bind(object)
     end
 
     private def stringify(value : LoxValue) : String

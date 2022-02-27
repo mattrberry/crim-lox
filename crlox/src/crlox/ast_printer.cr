@@ -130,6 +130,10 @@ module Crlox
       expr.keyword.lexeme
     end
 
+    def visit(expr : Expr::Super) : String
+      expr.keyword.lexeme
+    end
+
     private def parenthesize(name : String, *exprs : Expr) : String
       String.build do |str|
         str << "(#{name}"

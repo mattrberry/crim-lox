@@ -267,7 +267,9 @@ module Crlox
       Expr::Call.new(callee, paren, arguments)
     end
 
-    # primary -> "true" | "false" | "nil" | NUMBER | STRING | "(" expression ")" | IDENTIFIER
+    # primary -> "true" | "false" | "nil" | "this"
+    #          | NUMBER | STRING | IDENTIFIER | "(" expression ")"
+    #          | "super" "." IDENTIFIER
     private def primary : Expr
       if match(TokenType::False)
         Expr::Literal.new(false)
@@ -279,6 +281,11 @@ module Crlox
         Expr::Literal.new(previous.literal)
       elsif match(TokenType::This)
         Expr::This.new(previous)
+      elsif match(TokenType::Super)
+        keyword = previous
+        consume(TokenType::Dot, "Expect '.' after 'super'.")
+        method = consume(TokenType::Identifier, "Expect superclass method name.")
+        Expr::Super.new(keyword, method)
       elsif match(TokenType::Identifier)
         Expr::Variable.new(previous)
       elsif match(TokenType::LeftParen)

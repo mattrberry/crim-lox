@@ -124,6 +124,7 @@ module Crlox
       abstract def visit(expr : Assign) : T
       abstract def visit(expr : Set) : T
       abstract def visit(expr : This) : T
+      abstract def visit(expr : Super) : T
     end
 
     def accept(visitor : Visitor(T)) : T forall T
@@ -237,6 +238,16 @@ module Crlox
       def_equals @keyword
 
       def initialize(@keyword : Token)
+      end
+    end
+
+    class Super < Expr
+      getter keyword : Token
+      getter method : Token
+
+      def_equals @keyword, @method
+
+      def initialize(@keyword : Token, @method : Token)
       end
     end
   end

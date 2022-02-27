@@ -35,16 +35,20 @@ module Crlox
       synchronize
     end
 
-    # classDecl -> "class" IDENTIFIER "{" function* "}"
+    # classDecl -> "class" IDENTIFIER ( "<" IDENTIFIER )? "{" function* "}"
     private def class_declaration : Stmt::Class
       name = consume(TokenType::Identifier, "Expect class name.")
+      if match(TokenType::Less)
+        consume(TokenType::Identifier, "Expect superclass name.")
+        superclass = Expr::Variable.new(previous)
+      end
       consume(TokenType::LeftBrace, "Expect '{' before class body.")
       methods = [] of Stmt::Function
       until check(TokenType::RightBrace) || at_end?
         methods << function("method")
       end
       consume(TokenType::RightBrace, "Expect '}' after class body.")
-      Stmt::Class.new(name, methods)
+      Stmt::Class.new(name, superclass, methods)
     end
 
     # function -> IDENTIFIER "(" parameters? ")" block

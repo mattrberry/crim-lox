@@ -101,11 +101,12 @@ module Crlox
 
     class Class < Stmt
       getter name : Token
+      getter superclass : Expr::Variable?
       getter methods : Array(Function)
 
-      def_equals @name, @methods
+      def_equals @name, @superclass, @methods
 
-      def initialize(@name : Token, @methods : Array(Stmt))
+      def initialize(@name : Token, @superclass : Expr::Variable?, @methods : Array(Stmt))
       end
     end
   end

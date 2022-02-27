@@ -84,6 +84,14 @@ module Crlox
 
       declare(stmt.name)
       define(stmt.name)
+
+      if superclass = stmt.superclass
+        if superclass.name == stmt.name
+          Lox.error(superclass.name, "A class can't inherit from itself.")
+        end
+        resolve(superclass)
+      end
+
       begin_scope
       @scopes.last["this"] = true
       stmt.methods.each do |method|
@@ -94,6 +102,7 @@ module Crlox
                         end
         resolve_function(method, function_type)
       end
+
       end_scope
 
       @current_class_type = enclosing_class_type

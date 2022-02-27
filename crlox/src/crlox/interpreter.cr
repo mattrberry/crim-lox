@@ -73,6 +73,13 @@ module Crlox
     end
 
     def visit(stmt : Stmt::Class) : Nil
+      if superclass_node = stmt.superclass
+        superclass = evaluate(superclass_node)
+        unless superclass.is_a?(LoxClass)
+          raise RuntimeError.new(superclass_node.name, "Superclass must be a class.")
+        end
+      end
+
       @environment.define(stmt.name.lexeme, nil)
 
       methods = Hash(String, LoxCallable::LoxFunction).new
@@ -81,7 +88,7 @@ module Crlox
         methods[method.name.lexeme] = function
       end
 
-      klass = LoxClass.new(stmt.name.lexeme, methods)
+      klass = LoxClass.new(stmt.name.lexeme, superclass, methods)
       @environment.assign(stmt.name, klass)
     end
 

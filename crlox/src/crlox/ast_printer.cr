@@ -18,7 +18,17 @@ module Crlox
     end
 
     def visit(stmt : Stmt::Class) : String
-      "(class #{stmt.name} #{stmt.methods.map { |method| visit(method) }})"
+      String.build do |str|
+        str << "(class "
+        str << stmt.name
+        if superclass = stmt.superclass
+          str << " < "
+          str << print(superclass)
+        end
+        str << " "
+        str << stmt.methods.map(&.accept(self)).join('\n')
+        str << ")"
+      end
     end
 
     def visit(stmt : Stmt::Expression) : String

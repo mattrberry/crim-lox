@@ -10,7 +10,7 @@ proc simpleInstruction(name: string, offset: int): int =
   echo name
   result = offset + 1
 
-proc disassembleInstruction(chunk: Chunk, offset: int): int =
+proc disassembleInstruction*(chunk: Chunk, offset: int): int =
   stdout.write(fmt"{offset:04} ")
   if offset > 0 and chunk.lines[offset] == chunk.lines[offset - 1]:
     stdout.write("   | ")
@@ -19,6 +19,11 @@ proc disassembleInstruction(chunk: Chunk, offset: int): int =
   let instr = chunk.code[offset]
   result = case OpCode(instr): # note: this assumes a valid opcode
     of opConstant: constantInstruction("OP_CONSTANT", chunk, offset)
+    of opAdd: simpleInstruction("OP_ADD", offset)
+    of opSubtract: simpleInstruction("OP_SUBTRACT", offset)
+    of opMultiply: simpleInstruction("OP_MULTIPLY", offset)
+    of opDivide: simpleInstruction("OP_DIVIDE", offset)
+    of opNegate: simpleInstruction("OP_NEGATE", offset)
     of opReturn: simpleInstruction("OP_RETURN", offset)
 
 proc disassembleChunk*(chunk: Chunk, name: string) =

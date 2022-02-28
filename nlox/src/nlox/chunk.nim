@@ -2,8 +2,13 @@ import value
 
 type
   OpCode* {.size: 1.} = enum
-    opConstant, # byte1: opcode, byte2: constant index
-    opReturn # byte1: opcode
+    opConstant, # byte2: constant index
+    opAdd,
+    opSubtract,
+    opMultiply,
+    opDivide,
+    opNegate,
+    opReturn
 
   Chunk* = ref object
     code*: seq[byte]

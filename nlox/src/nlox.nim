@@ -1,5 +1,9 @@
-# This is just an example to get you started. A typical binary package
-# uses this file as the main entry point of the application.
+import nlox/[chunk, debug]
 
 when isMainModule:
-  echo("Hello, World!")
+  let mychunk = newChunk()
+  let constant = addConstant(myChunk, 1.2)
+  writeChunk(myChunk, OpCode.opConstant, 123)
+  writeChunk(myChunk, constant.byte, 123)
+  writeChunk(mychunk, OpCode.opReturn, 123)
+  disassembleChunk(mychunk, "test chunk")

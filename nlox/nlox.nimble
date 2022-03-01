@@ -11,3 +11,6 @@ bin           = @["nlox"]
 # Dependencies
 
 requires "nim >= 1.6.0"
+
+task test, "test":
+  exec "nim c -r tests/runner.nim"

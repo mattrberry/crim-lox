@@ -1,4 +1,4 @@
-import chunk, value
+import chunk, value, compiler
 when defined(debugTraceExecution):
   import debug
 
@@ -16,7 +16,7 @@ type
     stack: array[stackMax, Value]
     stackTop: ptr Value
 
-  InterpretResult = enum
+  InterpretResult* = enum
     interpOk, interpCompileError, interpRuntimeError
 
 proc stackBase(vm: VM): ptr Value = cast[ptr Value](addr(vm.stack))
@@ -77,3 +77,7 @@ proc interpret*(chunk: Chunk): InterpretResult =
   vm.chunk = chunk
   vm.ip = addr(vm.chunk.code[0])
   run()
+
+proc interpret*(source: string): InterpretResult =
+  compile(source)
+  result = InterpretResult.interpOk

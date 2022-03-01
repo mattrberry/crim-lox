@@ -1,28 +1,21 @@
-import nlox/[chunk, debug, vm]
+import os
+import nlox/vm
+
+proc repl() =
+  while true:
+    stdout.write("> ")
+    let line = stdin.readLine()
+    discard interpret(line)
+
+proc runFile(file: string) =
+  let
+    source = readFile(file) # assumes file exists and can be read
+    result = interpret(source)
+  if result == InterpretResult.interpCompileError: quit(65)
+  if result == InterpretResult.interpRuntimeError: quit(70)
 
 when isMainModule:
-  let mychunk = newChunk()
-
-  var constant = addConstant(myChunk, 1.2)
-  writeChunk(myChunk, OpCode.opConstant, 123)
-  writeChunk(myChunk, constant.byte, 123)
-
-  constant = addConstant(myChunk, 3.4)
-  writeChunk(myChunk, OpCode.opConstant, 123)
-  writeChunk(myChunk, constant.byte, 123)
-
-  writeChunk(myChunk, OpCode.opAdd, 123)
-
-  constant = addConstant(myChunk, 5.6)
-  writeChunk(myChunk, OpCode.opConstant, 123)
-  writeChunk(myChunk, constant.byte, 123)
-
-  writeChunk(myChunk, OpCode.opDivide, 123)
-
-  writeChunk(myChunk, OpCode.opNegate, 123)
-
-  writeChunk(mychunk, OpCode.opReturn, 123)
-
-  disassembleChunk(mychunk, "test chunk")
-
-  discard interpret(myChunk)
+  case paramCount():
+  of 0: repl()
+  of 1: runFile(paramStr(1))
+  else: quit("Usage: nlox [path]", 42)

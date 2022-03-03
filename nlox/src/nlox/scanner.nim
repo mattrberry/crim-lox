@@ -1,5 +1,5 @@
 type
-  Scanner = ref object
+  Scanner* = ref object
     source: string
     start, current: int
     line: int

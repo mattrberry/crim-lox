@@ -79,5 +79,6 @@ proc interpret*(chunk: Chunk): InterpretResult =
   run()
 
 proc interpret*(source: string): InterpretResult =
-  compile(source)
-  result = InterpretResult.interpOk
+  let chunk = newChunk()
+  if not compile(source, chunk): return interpCompileError
+  interpret(chunk)

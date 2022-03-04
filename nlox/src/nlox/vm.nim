@@ -1,3 +1,4 @@
+import std/strformat
 import chunk, value, compiler
 when defined(debugTraceExecution):
   import debug
@@ -21,11 +22,21 @@ type
 
 proc stackBase(vm: VM): ptr Value = cast[ptr Value](addr(vm.stack))
 
+proc resetStack(vm: VM) =
+  vm.stackTop = vm.stackBase
+
 proc newVM(): VM =
   new result
-  result.stackTop = result.stackBase()
+  result.resetStack()
 
 let vm = newVM()
+
+proc runtimeError(message: string) =
+  stderr.writeLine(message)
+  let instruction = vm.ip - addr(vm.chunk.code[0]) - 1
+  let line = vm.chunk.lines[instruction]
+  stderr.writeLine(fmt"[line {line}] in script")
+  vm.resetStack()
 
 proc readByte(): byte =
   result = vm.ip[]
@@ -41,11 +52,18 @@ proc pop(): Value =
   vm.stackTop = vm.stackTop - 1
   result = vm.stackTop[]
 
+proc peek(distance: int): Value = (vm.stackTop - 1 - distance)[]
+
 template binaryOp(operator: untyped): untyped =
-  let
-    b = pop()
-    a = pop()
+  if not isNum(peek(0)) or not isNum(peek(1)):
+    runtimeError("Operands must be numbers.")
+    return interpRuntimeError
+  let b = pop().number
+  let a = pop().number
   push(operator(a, b))
+
+proc isFalsey(val: Value): bool =
+  val.valType == valNil or (val.valType == valBool and not val.boolean)
 
 proc run(): InterpretResult =
   while true:
@@ -63,15 +81,23 @@ proc run(): InterpretResult =
       of opConstant:
         let constant = readConstant()
         push(constant)
+      of opNil: push(nilValue)
+      of opTrue: push(true.toValue())
+      of opFalse: push(false.toValue())
       of opAdd: binaryOp(`+`)
       of opSubtract: binaryOp(`-`)
       of opMultiply: binaryOp(`*`)
       of opDivide: binaryOp(`/`)
-      of opNegate: push(-pop())
+      of opNot: push(pop().isFalsey())
+      of opNegate:
+        if not isNum(peek(0)):
+          runtimeError("Operand must be a number.")
+          return interpRuntimeError
+        push(-pop().number)
       of opReturn:
         printValue(pop())
         echo ""
-        return Interpretresult.interpOk
+        return interpOk
 
 proc interpret*(chunk: Chunk): InterpretResult =
   vm.chunk = chunk

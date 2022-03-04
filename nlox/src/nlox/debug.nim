@@ -17,12 +17,16 @@ proc disassembleInstruction*(chunk: Chunk, offset: int): int =
   else:
     stdout.write(fmt"{chunk.lines[offset]:4} ")
   let instr = chunk.code[offset]
-  result = case OpCode(instr): # note: this assumes a valid opcode
+  result = case OpCode(instr) # note: this assumes a valid opcode
     of opConstant: constantInstruction("OP_CONSTANT", chunk, offset)
+    of opNil: simpleInstruction("OP_NIL", offset)
+    of opTrue: simpleInstruction("OP_TRUE", offset)
+    of opFalse: simpleInstruction("OP_FALSE", offset)
     of opAdd: simpleInstruction("OP_ADD", offset)
     of opSubtract: simpleInstruction("OP_SUBTRACT", offset)
     of opMultiply: simpleInstruction("OP_MULTIPLY", offset)
     of opDivide: simpleInstruction("OP_DIVIDE", offset)
+    of opNot: simpleInstruction("OP_NOT", offset)
     of opNegate: simpleInstruction("OP_NEGATE", offset)
     of opReturn: simpleInstruction("OP_RETURN", offset)
 

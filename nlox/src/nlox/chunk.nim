@@ -3,10 +3,14 @@ import value
 type
   OpCode* {.size: 1.} = enum
     opConstant, # byte2: constant index
+    opNil,
+    opTrue,
+    opFalse,
     opAdd,
     opSubtract,
     opMultiply,
     opDivide,
+    opNot,
     opNegate,
     opReturn
 

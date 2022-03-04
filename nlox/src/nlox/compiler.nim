@@ -40,9 +40,9 @@ proc errorAt(c; token: Token, message: string) =
   c.parser.panicMode = true
   stderr.write(fmt"[line {token.line}] Error")
   case token.tokType
-  of tkEof: stderr.write(" at end")
-  of tkError: discard
-  else: stderr.write(fmt" at '{token.lit}'")
+    of tkEof: stderr.write(" at end")
+    of tkError: discard
+    else: stderr.write(fmt" at '{token.lit}'")
   stderr.writeLine(fmt": {message}")
   c.parser.hadError = true
 
@@ -99,19 +99,27 @@ proc unary(c) =
   let opType = c.parser.previous.tokType
   c.parsePrecedence(precUnary) # compile the operand
   case opType
-  of tkMinus: c.emitBytes(opNegate) # emit the operator instruction
-  else: discard # unreachable
+    of tkBang: c.emitBytes(opNot)
+    of tkMinus: c.emitBytes(opNegate)
+    else: discard # unreachable
 
 proc binary(c) =
   let opType = c.parser.previous.tokType
   let rule = getRule(opType)
   c.parsePrecedence(succ(rule.precedence))
   case opType
-  of tkPlus: c.emitBytes(opAdd)
-  of tkMinus: c.emitBytes(opSubtract)
-  of tkStar: c.emitBytes(opMultiply)
-  of tkSlash: c.emitBytes(opDivide)
-  else: discard
+    of tkPlus: c.emitBytes(opAdd)
+    of tkMinus: c.emitBytes(opSubtract)
+    of tkStar: c.emitBytes(opMultiply)
+    of tkSlash: c.emitBytes(opDivide)
+    else: discard
+
+proc literal(c) =
+  case c.parser.previous.tokType
+    of tkFalse: c.emitBytes(opFalse)
+    of tkNil: c.emitBytes(opNil)
+    of tkTrue: c.emitBytes(opTrue)
+    else: discard
 
 const rules: array[TokType, ParseRule] = [
   tkLeftParen:    ParseRule(prefix: grouping, infix: nil,    precedence: precNone),
@@ -125,7 +133,7 @@ const rules: array[TokType, ParseRule] = [
   tkSemicolon:    ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkSlash:        ParseRule(prefix: nil,      infix: binary, precedence: precFactor),
   tkStar:         ParseRule(prefix: nil,      infix: binary, precedence: precFactor),
-  tkBang:         ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
+  tkBang:         ParseRule(prefix: unary,    infix: nil,    precedence: precNone),
   tkBangEqual:    ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkEqual:        ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkEqualEqual:   ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
@@ -139,17 +147,17 @@ const rules: array[TokType, ParseRule] = [
   tkAnd:          ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkClass:        ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkElse:         ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
-  tkFalse:        ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
+  tkFalse:        ParseRule(prefix: literal,  infix: nil,    precedence: precNone),
   tkFor:          ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkFun:          ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkIf:           ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
-  tkNil:          ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
+  tkNil:          ParseRule(prefix: literal,  infix: nil,    precedence: precNone),
   tkOr:           ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkPrint:        ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkReturn:       ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkSuper:        ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkThis:         ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
-  tkTrue:         ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
+  tkTrue:         ParseRule(prefix: literal,  infix: nil,    precedence: precNone),
   tkVar:          ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkWhile:        ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkError:        ParseRule(prefix: nil,      infix: nil,    precedence: precNone),

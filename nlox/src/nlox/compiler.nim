@@ -127,6 +127,9 @@ proc literal(c) =
     of tkTrue: c.emitBytes(opTrue)
     else: discard
 
+proc str(c) =
+  c.emitConstant(c.parser.previous.lit[1..^2])
+
 const rules: array[TokType, ParseRule] = [
   tkLeftParen:    ParseRule(prefix: grouping, infix: nil,    precedence: precNone),
   tkRightParen:   ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
@@ -148,7 +151,7 @@ const rules: array[TokType, ParseRule] = [
   tkLess:         ParseRule(prefix: nil,      infix: binary, precedence: precComparison),
   tkLessEqual:    ParseRule(prefix: nil,      infix: binary, precedence: precComparison),
   tkIdent:        ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
-  tkString:       ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
+  tkString:       ParseRule(prefix: str,      infix: nil,    precedence: precNone),
   tkNumber:       ParseRule(prefix: number,   infix: nil,    precedence: precNone),
   tkAnd:          ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkClass:        ParseRule(prefix: nil,      infix: nil,    precedence: precNone),

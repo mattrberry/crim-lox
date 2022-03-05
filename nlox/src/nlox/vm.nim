@@ -31,12 +31,13 @@ proc newVM(): VM =
 
 let vm = newVM()
 
-proc runtimeError(message: string) =
+proc runtimeError(message: string): InterpretResult =
   stderr.writeLine(message)
   let instruction = vm.ip - addr(vm.chunk.code[0]) - 1
   let line = vm.chunk.lines[instruction]
   stderr.writeLine(fmt"[line {line}] in script")
   vm.resetStack()
+  interpRuntimeError
 
 proc readByte(): byte =
   result = vm.ip[]
@@ -56,11 +57,15 @@ proc peek(distance: int): Value = (vm.stackTop - 1 - distance)[]
 
 template binaryOp(operator: untyped): untyped =
   if not isNum(peek(0)) or not isNum(peek(1)):
-    runtimeError("Operands must be numbers.")
-    return interpRuntimeError
+    return runtimeError("Operands must be numbers.")
   let b = pop().number
   let a = pop().number
   push(operator(a, b))
+
+proc concatenate() =
+  let b = pop().obj.str
+  let a = pop().obj.str
+  push(a & b)
 
 proc isFalsey(val: Value): bool =
   val.valType == valNil or (val.valType == valBool and not val.boolean)
@@ -71,6 +76,7 @@ proc valuesEqual(a, b: Value): bool =
     of valBool: a.boolean == b.boolean
     of valNil: true
     of valNum: a.number == b.number
+    of valObj: a.obj.str == b.obj.str
 
 proc run(): InterpretResult =
   while true:
@@ -78,16 +84,12 @@ proc run(): InterpretResult =
       stdout.write("          ")
       for idx, value in vm.stack:
         if vm.stackBase() + idx >= vm.stackTop: break
-        stdout.write("[ ")
-        printValue(value)
-        stdout.write(" ]")
+        stdout.write(fmt"[ {value} ]")
       echo ""
       discard disassembleInstruction(vm.chunk, vm.ip - addr(vm.chunk.code[0]))
     let instruction = OpCode(readByte())
     case instruction
-      of opConstant:
-        let constant = readConstant()
-        push(constant)
+      of opConstant: push(readConstant())
       of opNil: push(nilValue)
       of opTrue: push(true.toValue())
       of opFalse: push(false.toValue())
@@ -97,19 +99,19 @@ proc run(): InterpretResult =
         push(valuesEqual(a, b))
       of opGreater: binaryOp(`>`)
       of opLess: binaryOp(`<`)
-      of opAdd: binaryOp(`+`)
+      of opAdd:
+        if isStr(peek(0)) and isStr(peek(1)): concatenate()
+        elif isNum(peek(0)) and isNum(peek(1)): binaryOp(`+`)
+        else: return runtimeError("Operands must be two numbers or two strings.")
       of opSubtract: binaryOp(`-`)
       of opMultiply: binaryOp(`*`)
       of opDivide: binaryOp(`/`)
       of opNot: push(pop().isFalsey())
       of opNegate:
-        if not isNum(peek(0)):
-          runtimeError("Operand must be a number.")
-          return interpRuntimeError
+        if not isNum(peek(0)): return runtimeError("Operand must be a number.")
         push(-pop().number)
       of opReturn:
-        printValue(pop())
-        echo ""
+        echo pop()
         return interpOk
 
 proc interpret*(chunk: Chunk): InterpretResult =

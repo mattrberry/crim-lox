@@ -18,8 +18,11 @@ proc isBool*(value: Value): bool = value.valType == valBool
 proc isNil*(value: Value): bool = value.valType == valNil
 proc isNum*(value: Value): bool = value.valType == valNum
 
-proc printValue*(value: Value) =
+proc `$`*(value: Value): string =
   case value.valType
-    of valBool: stdout.write(value.boolean)
-    of valNil: stdout.write("nil")
-    of valNum: stdout.write(fmt"{value.number:g}")
+    of valBool: $value.boolean
+    of valNil: "nil"
+    of valNum: fmt"{value.number:g}"
+
+proc printValue*(value: Value) =
+  stdout.write(value)

@@ -108,6 +108,12 @@ proc binary(c) =
   let rule = getRule(opType)
   c.parsePrecedence(succ(rule.precedence))
   case opType
+    of tkBangEqual: c.emitBytes(opEqual, opNot)
+    of tkEqualEqual: c.emitBytes(opEqual)
+    of tkGreater: c.emitBytes(opGreater)
+    of tkGreaterEqual: c.emitBytes(opLess, opNot)
+    of tkLess: c.emitBytes(opLess)
+    of tkLessEqual: c.emitBytes(opGreater, opNot)
     of tkPlus: c.emitBytes(opAdd)
     of tkMinus: c.emitBytes(opSubtract)
     of tkStar: c.emitBytes(opMultiply)
@@ -134,13 +140,13 @@ const rules: array[TokType, ParseRule] = [
   tkSlash:        ParseRule(prefix: nil,      infix: binary, precedence: precFactor),
   tkStar:         ParseRule(prefix: nil,      infix: binary, precedence: precFactor),
   tkBang:         ParseRule(prefix: unary,    infix: nil,    precedence: precNone),
-  tkBangEqual:    ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
+  tkBangEqual:    ParseRule(prefix: nil,      infix: binary, precedence: precEquality),
   tkEqual:        ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
-  tkEqualEqual:   ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
-  tkGreater:      ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
-  tkGreaterEqual: ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
-  tkLess:         ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
-  tkLessEqual:    ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
+  tkEqualEqual:   ParseRule(prefix: nil,      infix: binary, precedence: precEquality),
+  tkGreater:      ParseRule(prefix: nil,      infix: binary, precedence: precComparison),
+  tkGreaterEqual: ParseRule(prefix: nil,      infix: binary, precedence: precComparison),
+  tkLess:         ParseRule(prefix: nil,      infix: binary, precedence: precComparison),
+  tkLessEqual:    ParseRule(prefix: nil,      infix: binary, precedence: precComparison),
   tkIdent:        ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkString:       ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkNumber:       ParseRule(prefix: number,   infix: nil,    precedence: precNone),

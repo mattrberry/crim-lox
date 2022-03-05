@@ -65,6 +65,13 @@ template binaryOp(operator: untyped): untyped =
 proc isFalsey(val: Value): bool =
   val.valType == valNil or (val.valType == valBool and not val.boolean)
 
+proc valuesEqual(a, b: Value): bool =
+  if a.valType != b.valType: return false
+  case a.valType
+    of valBool: a.boolean == b.boolean
+    of valNil: true
+    of valNum: a.number == b.number
+
 proc run(): InterpretResult =
   while true:
     when defined(debugTraceExecution):
@@ -84,6 +91,12 @@ proc run(): InterpretResult =
       of opNil: push(nilValue)
       of opTrue: push(true.toValue())
       of opFalse: push(false.toValue())
+      of opEqual:
+        let b = pop()
+        let a = pop()
+        push(valuesEqual(a, b))
+      of opGreater: binaryOp(`>`)
+      of opLess: binaryOp(`<`)
       of opAdd: binaryOp(`+`)
       of opSubtract: binaryOp(`-`)
       of opMultiply: binaryOp(`*`)

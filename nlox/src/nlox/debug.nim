@@ -1,5 +1,5 @@
 import std/strformat
-import chunk
+import chunk, value
 
 proc constantInstruction(name: string, chunk: Chunk, offset: int): int =
   let constant_idx = chunk.code[offset + 1]
@@ -22,6 +22,9 @@ proc disassembleInstruction*(chunk: Chunk, offset: int): int =
     of opNil: simpleInstruction("OP_NIL", offset)
     of opTrue: simpleInstruction("OP_TRUE", offset)
     of opFalse: simpleInstruction("OP_FALSE", offset)
+    of opEqual: simpleInstruction("OP_EQUAL", offset)
+    of opGreater: simpleInstruction("OP_GREATER", offset)
+    of opLess: simpleInstruction("OP_LESS", offset)
     of opAdd: simpleInstruction("OP_ADD", offset)
     of opSubtract: simpleInstruction("OP_SUBTRACT", offset)
     of opMultiply: simpleInstruction("OP_MULTIPLY", offset)

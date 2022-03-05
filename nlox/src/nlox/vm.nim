@@ -93,6 +93,7 @@ proc run(): InterpretResult =
       of opNil: push(nilValue)
       of opTrue: push(true.toValue())
       of opFalse: push(false.toValue())
+      of opPop: discard pop()
       of opEqual:
         let b = pop()
         let a = pop()
@@ -110,9 +111,8 @@ proc run(): InterpretResult =
       of opNegate:
         if not isNum(peek(0)): return runtimeError("Operand must be a number.")
         push(-pop().number)
-      of opReturn:
-        echo pop()
-        return interpOk
+      of opPrint: echo pop()
+      of opReturn: return interpOk
 
 proc interpret*(chunk: Chunk): InterpretResult =
   vm.chunk = chunk

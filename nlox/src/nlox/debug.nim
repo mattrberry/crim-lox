@@ -22,6 +22,7 @@ proc disassembleInstruction*(chunk: Chunk, offset: int): int =
     of opNil: simpleInstruction("OP_NIL", offset)
     of opTrue: simpleInstruction("OP_TRUE", offset)
     of opFalse: simpleInstruction("OP_FALSE", offset)
+    of opPop: simpleInstruction("OP_POP", offset)
     of opEqual: simpleInstruction("OP_EQUAL", offset)
     of opGreater: simpleInstruction("OP_GREATER", offset)
     of opLess: simpleInstruction("OP_LESS", offset)
@@ -31,6 +32,7 @@ proc disassembleInstruction*(chunk: Chunk, offset: int): int =
     of opDivide: simpleInstruction("OP_DIVIDE", offset)
     of opNot: simpleInstruction("OP_NOT", offset)
     of opNegate: simpleInstruction("OP_NEGATE", offset)
+    of opPrint: simpleInstruction("OP_PRINT", offset)
     of opReturn: simpleInstruction("OP_RETURN", offset)
 
 proc disassembleChunk*(chunk: Chunk, name: string) =

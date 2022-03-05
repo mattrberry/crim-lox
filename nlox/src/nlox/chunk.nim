@@ -6,6 +6,7 @@ type
     opNil,
     opTrue,
     opFalse,
+    opPop,
     opEqual,
     opGreater,
     opLess,
@@ -15,6 +16,7 @@ type
     opDivide,
     opNot,
     opNegate,
+    opPrint,
     opReturn
 
   Chunk* = ref object

@@ -65,6 +65,12 @@ proc consume(c; tokType: TokType, message: string) =
   else:
     c.errorAtCurrent(message)
 
+proc check(c; tokType: TokType): bool = c.parser.current.tokType == tokType
+
+proc match(c; tokType: TokType): bool =
+  result = c.check(tokType)
+  if result: c.advance()
+
 proc makeConstant(c; value: Value): byte =
   let constant = c.compilingChunk.addConstant(value)
   if constant > 255: c.error("Too many constants in one chunk.")
@@ -82,10 +88,11 @@ proc endCompiler(c) =
     if not c.parser.hadError:
       disassembleChunk(c.compilingChunk, "code")
 
+proc expression(c)
+proc statement(c)
+proc declaration(c)
 proc getRule(tokType: TokType): ParseRule
 proc parsePrecedence(c; precedence: Precedence)
-
-proc expression(c) = c.parsePrecedence(precAssignment)
 
 proc number(c) =
   let value = parseFloat(c.parser.previous.lit)
@@ -187,11 +194,39 @@ proc parsePrecedence(c; precedence: Precedence) =
     let infixRule = getRule(c.parser.previous.tokType).infix
     c.infixRule()
 
+proc expression(c) = c.parsePrecedence(precAssignment)
+
+proc expressionStatement(c) =
+  c.expression()
+  c.consume(tkSemicolon, "Expect ';' after expression.")
+  c.emitBytes(opPop)
+
+proc printStatement(c) =
+  c.expression()
+  c.consume(tkSemicolon, "Expect ';' after value.")
+  c.emitBytes(opPrint)
+
+proc synchronize(c) =
+  c.parser.panicMode = false
+  while c.parser.current.tokType != tkEof:
+    if c.parser.previous.tokType == tkSemicolon or c.parser.current.tokType in {
+        tkClass, tkFun, tkVar, tkFor,
+        tkIf, tkWhile, tkPrint, tkReturn
+      }: return
+    c.advance()
+
+proc statement(c) =
+  if c.match(tkPrint): c.printStatement()
+  else: c.expressionStatement()
+
+proc declaration(c) =
+  c.statement()
+  if c.parser.panicMode: c.synchronize()
+
 proc compile*(source: string, chunk: Chunk): bool =
   let scanner = newScanner(source)
   let compiler = Compiler(scanner: scanner, parser: new Parser, compilingChunk: chunk)
   compiler.advance()
-  compiler.expression()
-  compiler.consume(tkEof, "Expect end of expression.")
+  while not compiler.match(tkEof): compiler.declaration()
   result = not compiler.parser.hadError
   compiler.endCompiler()

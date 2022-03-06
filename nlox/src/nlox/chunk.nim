@@ -9,6 +9,7 @@ type
     opPop,
     opGetGlobal,
     opDefineGlobal,
+    opSetGlobal,
     opEqual,
     opGreater,
     opLess,

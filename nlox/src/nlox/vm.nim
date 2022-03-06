@@ -104,6 +104,10 @@ proc run(): InterpretResult =
         let name = readConstant().obj.str
         vm.globals[name] = peek(0)
         discard pop()
+      of opSetGlobal:
+        let name = readConstant().obj.str
+        if name in vm.globals: vm.globals[name] = peek(0)
+        else: return runtimeError(fmt"Undefined variable '{name}'.")
       of opEqual:
         let b = pop()
         let a = pop()

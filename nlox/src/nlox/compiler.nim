@@ -29,7 +29,7 @@ type
     prefix, infix: ParseFn
     precedence: Precedence
 
-  ParseFn = proc(c: Compiler)
+  ParseFn = proc(c: Compiler, canAssign: bool)
 
 using c: Compiler
 
@@ -101,15 +101,15 @@ proc declaration(c)
 proc getRule(tokType: TokType): ParseRule
 proc parsePrecedence(c; precedence: Precedence)
 
-proc number(c) =
+proc number(c; canAssign: bool) =
   let value = parseFloat(c.parser.previous.lit)
   c.emitConstant(value)
 
-proc grouping(c) =
+proc grouping(c; canAssign: bool) =
   c.expression()
   c.consume(tkRightParen, "Expect ')' after expression.")
 
-proc unary(c) =
+proc unary(c; canAssign: bool) =
   let opType = c.parser.previous.tokType
   c.parsePrecedence(precUnary) # compile the operand
   case opType
@@ -117,7 +117,7 @@ proc unary(c) =
     of tkMinus: c.emitBytes(opNegate)
     else: discard # unreachable
 
-proc binary(c) =
+proc binary(c; canAssign: bool) =
   let opType = c.parser.previous.tokType
   let rule = getRule(opType)
   c.parsePrecedence(succ(rule.precedence))
@@ -134,21 +134,25 @@ proc binary(c) =
     of tkSlash: c.emitBytes(opDivide)
     else: discard
 
-proc literal(c) =
+proc literal(c; canAssign: bool) =
   case c.parser.previous.tokType
     of tkFalse: c.emitBytes(opFalse)
     of tkNil: c.emitBytes(opNil)
     of tkTrue: c.emitBytes(opTrue)
     else: discard
 
-proc str(c) =
+proc str(c; canAssign: bool) =
   c.emitConstant(c.parser.previous.lit[1..^2])
 
-proc namedVariable(c; name: Token) =
+proc namedVariable(c; name: Token, canAssign: bool) =
   let arg = c.identifierConstant(name)
-  c.emitBytes(opGetGlobal, arg)
+  if canAssign and c.match(tkEqual):
+    c.expression()
+    c.emitBytes(opSetGlobal, arg)
+  else:
+    c.emitBytes(opGetGlobal, arg)
 
-proc variable(c) = c.namedVariable(c.parser.previous)
+proc variable(c; canAssign: bool) = c.namedVariable(c.parser.previous, canAssign)
 
 const rules: array[TokType, ParseRule] = [
   tkLeftParen:    ParseRule(prefix: grouping, infix: nil,    precedence: precNone),
@@ -201,11 +205,13 @@ proc parsePrecedence(c; precedence: Precedence) =
   if prefixRule == nil:
     c.error("Expect expression.")
     return
-  c.prefixRule()
+  let canAssign = precedence <= precAssignment
+  c.prefixRule(canAssign)
   while precedence <= getRule(c.parser.current.tokType).precedence:
     c.advance()
     let infixRule = getRule(c.parser.previous.tokType).infix
-    c.infixRule()
+    c.infixRule(canAssign)
+  if canAssign and c.match(tkEqual): c.error("Invalid assignment target.")
 
 proc expression(c) = c.parsePrecedence(precAssignment)
 

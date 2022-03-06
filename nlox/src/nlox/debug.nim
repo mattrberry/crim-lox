@@ -25,6 +25,7 @@ proc disassembleInstruction*(chunk: Chunk, offset: int): int =
     of opPop: simpleInstruction("OP_POP", offset)
     of opGetGlobal: constantInstruction("OP_GET_GLOBAL", chunk, offset)
     of opDefineGlobal: constantInstruction("OP_DEFINE_GLOBAL", chunk, offset)
+    of opSetGlobal: constantInstruction("OP_SET_GLOBAL", chunk, offset)
     of opEqual: simpleInstruction("OP_EQUAL", offset)
     of opGreater: simpleInstruction("OP_GREATER", offset)
     of opLess: simpleInstruction("OP_LESS", offset)

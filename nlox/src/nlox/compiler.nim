@@ -1,4 +1,4 @@
-import std/[strformat, strutils]
+import std/[strformat, strutils, tables]
 import scanner, chunk, value
 when defined(debugPrintCode): import debug
 
@@ -7,6 +7,7 @@ type
     scanner: Scanner
     parser: Parser
     compilingChunk: Chunk
+    globals: Table[string, byte]
 
   Parser = ref object
     current, previous: Token
@@ -81,7 +82,10 @@ proc emitBytes(c; bytes: varargs[byte]) =
 
 proc emitConstant(c; value: Value) = c.emitBytes(opConstant, c.makeConstant(value))
 
-proc identifierConstant(c; name: Token): byte = c.makeConstant(name.lit)
+proc identifierConstant(c; name: Token): byte =
+  if name.lit notin c.globals:
+    c.globals[name.lit] = c.makeConstant(name.lit)
+  c.globals[name.lit]
 
 proc parseVariable(c; errorMessage: string): byte =
   c.consume(tkIdent, errorMessage)

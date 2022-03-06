@@ -1,4 +1,4 @@
-import std/strformat
+import std/[strformat, tables]
 import chunk, value, compiler
 when defined(debugTraceExecution):
   import debug
@@ -16,6 +16,7 @@ type
     ip: ptr byte
     stack: array[stackMax, Value]
     stackTop: ptr Value
+    globals: Table[string, Value]
 
   InterpretResult* = enum
     interpOk, interpCompileError, interpRuntimeError
@@ -28,6 +29,7 @@ proc resetStack(vm: VM) =
 proc newVM(): VM =
   new result
   result.resetStack()
+  result.globals = initTable[string, Value]()
 
 let vm = newVM()
 
@@ -94,6 +96,14 @@ proc run(): InterpretResult =
       of opTrue: push(true.toValue())
       of opFalse: push(false.toValue())
       of opPop: discard pop()
+      of opGetGlobal:
+        let name = readConstant().obj.str
+        if name in vm.globals: push(vm.globals[name])
+        else: return runtimeError(fmt"Undefined variable '{name}'.")
+      of opDefineGlobal:
+        let name = readConstant().obj.str
+        vm.globals[name] = peek(0)
+        discard pop()
       of opEqual:
         let b = pop()
         let a = pop()

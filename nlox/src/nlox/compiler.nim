@@ -79,8 +79,15 @@ proc makeConstant(c; value: Value): byte =
 proc emitBytes(c; bytes: varargs[byte]) =
   for b in bytes: writeChunk(c.compilingChunk, b, c.parser.previous.line)
 
-proc emitConstant(c; value: Value) =
-  c.emitBytes(opConstant, c.makeConstant(value))
+proc emitConstant(c; value: Value) = c.emitBytes(opConstant, c.makeConstant(value))
+
+proc identifierConstant(c; name: Token): byte = c.makeConstant(name.lit)
+
+proc parseVariable(c; errorMessage: string): byte =
+  c.consume(tkIdent, errorMessage)
+  c.identifierConstant(c.parser.previous)
+
+proc defineVariable(c; global: byte) = c.emitBytes(opDefineGlobal, global)
 
 proc endCompiler(c) =
   c.emitBytes(opReturn)
@@ -137,6 +144,12 @@ proc literal(c) =
 proc str(c) =
   c.emitConstant(c.parser.previous.lit[1..^2])
 
+proc namedVariable(c; name: Token) =
+  let arg = c.identifierConstant(name)
+  c.emitBytes(opGetGlobal, arg)
+
+proc variable(c) = c.namedVariable(c.parser.previous)
+
 const rules: array[TokType, ParseRule] = [
   tkLeftParen:    ParseRule(prefix: grouping, infix: nil,    precedence: precNone),
   tkRightParen:   ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
@@ -157,7 +170,7 @@ const rules: array[TokType, ParseRule] = [
   tkGreaterEqual: ParseRule(prefix: nil,      infix: binary, precedence: precComparison),
   tkLess:         ParseRule(prefix: nil,      infix: binary, precedence: precComparison),
   tkLessEqual:    ParseRule(prefix: nil,      infix: binary, precedence: precComparison),
-  tkIdent:        ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
+  tkIdent:        ParseRule(prefix: variable, infix: nil,    precedence: precNone),
   tkString:       ParseRule(prefix: str,      infix: nil,    precedence: precNone),
   tkNumber:       ParseRule(prefix: number,   infix: nil,    precedence: precNone),
   tkAnd:          ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
@@ -219,8 +232,16 @@ proc statement(c) =
   if c.match(tkPrint): c.printStatement()
   else: c.expressionStatement()
 
+proc varDeclaration(c) =
+  let global = c.parseVariable("Expect variable name.")
+  if c.match(tkEqual): c.expression()
+  else: c.emitBytes(opNil)
+  c.consume(tkSemicolon, "Expect ';' after variable declaration.")
+  c.defineVariable(global)
+
 proc declaration(c) =
-  c.statement()
+  if c.match(tkVar): c.varDeclaration()
+  else: c.statement()
   if c.parser.panicMode: c.synchronize()
 
 proc compile*(source: string, chunk: Chunk): bool =

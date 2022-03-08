@@ -7,10 +7,16 @@ type
     scanner: Scanner
     parser: Parser
     compilingChunk: Chunk
+    locals: seq[Local]
+    scopeDepth: int
 
   Parser = ref object
     current, previous: Token
     hadError, panicMode: bool
+
+  Local = object
+    name: string
+    depth: int
 
   Precedence = enum
     precNone,
@@ -83,17 +89,44 @@ proc emitConstant(c; value: Value) = c.emitBytes(opConstant, c.makeConstant(valu
 
 proc identifierConstant(c; name: Token): byte = c.makeConstant(name.lit)
 
+# add a new local variable, but mark it as uninitialized
+proc addLocal(c; name: string) = c.locals.add(Local(name: name, depth: -1))
+
+# declare but don't define a local variable in the current scope
+proc declareVariable(c) =
+  if c.scopeDepth == 0: return # vars in global scope are added to constants table
+  let name = c.parser.previous.lit
+  # don't allow multiple variable declarations of the same name in the same scope
+  for idx in countdown(c.locals.high, 0):
+    let local = c.locals[idx]
+    if local.depth != -1 and local.depth < c.scopeDepth: break
+    if name == local.name: c.error("Already a variable with this name in this scope.")
+  c.addLocal(name)
+
+# consume identifier and add it to the constants table, then return its index
 proc parseVariable(c; errorMessage: string): byte =
   c.consume(tkIdent, errorMessage)
-  c.identifierConstant(c.parser.previous)
+  c.declareVariable()
+  if c.scopeDepth > 0: 0'u8 # local scope, don't add to constant's table
+  else: c.identifierConstant(c.parser.previous) # add to constants table
 
-proc defineVariable(c; global: byte) = c.emitBytes(opDefineGlobal, global)
+# mark variable as initialized by setting local scope depth or emitting global define
+proc defineVariable(c; global: byte) =
+  if c.scopeDepth > 0: c.locals[^1].depth = c.scopeDepth
+  else: c.emitBytes(opDefineGlobal, global)
 
 proc endCompiler(c) =
   c.emitBytes(opReturn)
   when defined(debugPrintCode):
     if not c.parser.hadError:
       disassembleChunk(c.compilingChunk, "code")
+
+proc beginScope(c) = inc(c.scopeDepth)
+proc endScope(c) =
+  dec(c.scopeDepth)
+  while len(c.locals) > 0 and c.locals[^1].depth > c.scopeDepth:
+    c.emitBytes(opPop)
+    discard c.locals.pop()
 
 proc expression(c)
 proc statement(c)
@@ -144,13 +177,31 @@ proc literal(c; canAssign: bool) =
 proc str(c; canAssign: bool) =
   c.emitConstant(c.parser.previous.lit[1..^2])
 
+# determine how many bytes back in the stack the local is
+proc resolveLocal(c; name: string): int =
+  for idx in countdown(c.locals.high, 0):
+    let local = c.locals[idx]
+    if name == local.name:
+      if local.depth == -1: c.error("Can't read local variable in its own initializer.")
+      return idx
+  return -1 # local not found
+
+# emit instructions to access variable with the given name
 proc namedVariable(c; name: Token, canAssign: bool) =
-  let arg = c.identifierConstant(name)
+  var arg = c.resolveLocal(name.lit) # attempt to resolve local
+  var getOp, setOp: OpCode # operations can be get or set on locals or globals
+  if arg != -1:
+    getOp = opGetLocal
+    setOp = opSetLocal
+  else: # resolve global if local cannot be resolved
+    arg = c.identifierConstant(name).int
+    getOp = opGetGlobal
+    setOp = opSetGlobal
   if canAssign and c.match(tkEqual):
     c.expression()
-    c.emitBytes(opSetGlobal, arg)
+    c.emitBytes(setOp, arg.byte)
   else:
-    c.emitBytes(opGetGlobal, arg)
+    c.emitBytes(getOp, arg.byte)
 
 proc variable(c; canAssign: bool) = c.namedVariable(c.parser.previous, canAssign)
 
@@ -225,6 +276,11 @@ proc printStatement(c) =
   c.consume(tkSemicolon, "Expect ';' after value.")
   c.emitBytes(opPrint)
 
+proc blockStatement(c) =
+  while not c.check(tkRightBrace) and not c.check(tkEof):
+    c.declaration()
+  c.consume(tkRightBrace, "Expect '}' after block.")
+
 proc synchronize(c) =
   c.parser.panicMode = false
   while c.parser.current.tokType != tkEof:
@@ -236,6 +292,10 @@ proc synchronize(c) =
 
 proc statement(c) =
   if c.match(tkPrint): c.printStatement()
+  elif c.match(tkLeftBrace):
+    c.beginScope()
+    c.blockStatement()
+    c.endScope()
   else: c.expressionStatement()
 
 proc varDeclaration(c) =

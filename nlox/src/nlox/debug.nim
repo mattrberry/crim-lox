@@ -10,6 +10,11 @@ proc simpleInstruction(name: string, offset: int): int =
   echo name
   result = offset + 1
 
+proc byteInstruction(name: string, chunk: Chunk, offset: int): int =
+  let slot_idx = chunk.code[offset + 1]
+  echo fmt"{name:16} {slot_idx:4}"
+  result = offset + 2
+
 proc disassembleInstruction*(chunk: Chunk, offset: int): int =
   stdout.write(fmt"{offset:04} ")
   if offset > 0 and chunk.lines[offset] == chunk.lines[offset - 1]:
@@ -23,6 +28,8 @@ proc disassembleInstruction*(chunk: Chunk, offset: int): int =
     of opTrue: simpleInstruction("OP_TRUE", offset)
     of opFalse: simpleInstruction("OP_FALSE", offset)
     of opPop: simpleInstruction("OP_POP", offset)
+    of opGetLocal: byteInstruction("OP_GET_LOCAL", chunk, offset)
+    of opSetLocal: byteInstruction("OP_SET_LOCAL", chunk, offset)
     of opGetGlobal: constantInstruction("OP_GET_GLOBAL", chunk, offset)
     of opDefineGlobal: constantInstruction("OP_DEFINE_GLOBAL", chunk, offset)
     of opSetGlobal: constantInstruction("OP_SET_GLOBAL", chunk, offset)

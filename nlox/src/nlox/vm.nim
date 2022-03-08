@@ -96,6 +96,8 @@ proc run(): InterpretResult =
       of opTrue: push(true.toValue())
       of opFalse: push(false.toValue())
       of opPop: discard pop()
+      of opGetLocal: push(vm.stack[readByte()])
+      of opSetLocal: vm.stack[readByte()] = peek(0)
       of opGetGlobal:
         let name = readConstant().obj.str
         if name in vm.globals: push(vm.globals[name])

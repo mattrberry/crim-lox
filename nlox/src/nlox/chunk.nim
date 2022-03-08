@@ -7,6 +7,8 @@ type
     opTrue,
     opFalse,
     opPop,
+    opGetLocal,
+    opSetLocal,
     opGetGlobal,
     opDefineGlobal,
     opSetGlobal,

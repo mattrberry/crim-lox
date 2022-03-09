@@ -137,6 +137,7 @@ proc run(): InterpretResult =
       of opJumpIfFalse:
         let jumpDistance = readShort()
         if isFalsey(peek(0)): vm.ip = vm.ip + jumpDistance.int
+      of opLoop: vm.ip = vm.ip - readShort().int
       of opReturn: return interpOk
 
 proc interpret*(chunk: Chunk): InterpretResult =

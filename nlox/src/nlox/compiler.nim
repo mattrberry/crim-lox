@@ -87,6 +87,24 @@ proc emitBytes(c; bytes: varargs[byte]) =
 
 proc emitConstant(c; value: Value) = c.emitBytes(opConstant, c.makeConstant(value))
 
+proc emitLoop(c; loopStart: int) =
+  c.emitBytes(opLoop)
+  let offset = c.compilingChunk.code.len() - loopStart + 2 # +2 for the jump's operands
+  if offset > high(uint16).int: c.error("Loop body too large.")
+  c.emitBytes(((offset shr 8) and 0xff).byte, (offset and 0xff).byte)
+
+# emit the instruction w/ by two placeholder bytes, and return the index of the instruction
+proc emitJump(c; instruction: byte): int =
+  c.emitBytes(instruction, 0xff, 0xff)
+  c.compilingChunk.code.len - 2
+
+# patch the distance for the jump at the given offset into the code chunk
+proc patchJump(c; offset: int) =
+  let jumpDistance = c.compilingChunk.code.len - offset - 2
+  if jumpDistance > high(uint16).int: c.error("Too much code to jump over.")
+  c.compilingChunk.code[offset] = ((jumpDistance shr 8) and 0xff).byte
+  c.compilingChunk.code[offset + 1] = (jumpDistance and 0xff).byte
+
 proc identifierConstant(c; name: Token): byte = c.makeConstant(name.lit)
 
 # add a new local variable, but mark it as uninitialized
@@ -114,18 +132,6 @@ proc parseVariable(c; errorMessage: string): byte =
 proc defineVariable(c; global: byte) =
   if c.scopeDepth > 0: c.locals[^1].depth = c.scopeDepth
   else: c.emitBytes(opDefineGlobal, global)
-
-# emit the instruction w/ by two placeholder bytes, and return the index of the instruction
-proc emitJump(c; instruction: byte): int =
-  c.emitBytes(instruction, 0xff, 0xff)
-  c.compilingChunk.code.len - 2
-
-# patch the distance for the jump at the given offset into the code chunk
-proc patchJump(c; offset: int) =
-  let jumpDistance = c.compilingChunk.code.len - offset - 2
-  if jumpDistance > high(uint16).int: c.error("Too much code to jump over.")
-  c.compilingChunk.code[offset] = ((jumpDistance shr 8) and 0xff).byte
-  c.compilingChunk.code[offset + 1] = (jumpDistance and 0xff).byte
 
 proc endCompiler(c) =
   c.emitBytes(opReturn)
@@ -315,6 +321,18 @@ proc ifStatement(c) =
   if c.match(tkElse): c.statement()
   c.patchJump(elseJump)
 
+proc whileStatement(c) =
+  let loopStart = c.compilingChunk.code.len()
+  c.consume(tkLeftParen, "Expect '(' after 'while'.")
+  c.expression()
+  c.consume(tkRightParen, "Expect ')' after condition.")
+  let exitJump = c.emitJump(opJumpIfFalse)
+  c.emitBytes(opPop) # pop expression if condition is true
+  c.statement()
+  c.emitLoop(loopStart) # jump back to condition
+  c.patchJump(exitJump) # mark exit jump point
+  c.emitBytes(opPop) # pop expression if condition is false
+
 proc blockStatement(c) =
   while not c.check(tkRightBrace) and not c.check(tkEof):
     c.declaration()
@@ -332,6 +350,7 @@ proc synchronize(c) =
 proc statement(c) =
   if c.match(tkPrint): c.printStatement()
   elif c.match(tkIf): c.ifStatement()
+  elif c.match(tkWhile): c.whileStatement()
   elif c.match(tkLeftBrace):
     c.beginScope()
     c.blockStatement()

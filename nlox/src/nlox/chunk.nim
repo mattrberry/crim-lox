@@ -23,7 +23,8 @@ type
     opNegate,
     opPrint,
     opJump,
-    opJumpIfFalse
+    opJumpIfFalse,
+    opLoop,
     opReturn
 
   Chunk* = ref object

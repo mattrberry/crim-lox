@@ -22,6 +22,8 @@ type
     opNot,
     opNegate,
     opPrint,
+    opJump,
+    opJumpIfFalse
     opReturn
 
   Chunk* = ref object

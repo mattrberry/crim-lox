@@ -2,8 +2,8 @@ import std/strformat
 import chunk, value
 
 proc constantInstruction(name: string, chunk: Chunk, offset: int): int =
-  let constant_idx = chunk.code[offset + 1]
-  echo fmt"{name:16} {constant_idx:4} '{chunk.constants[constant_idx]}'"
+  let constantIdx = chunk.code[offset + 1]
+  echo fmt"{name:16} {constantIdx:4} '{chunk.constants[constantIdx]}'"
   result = offset + 2
 
 proc simpleInstruction(name: string, offset: int): int =
@@ -11,9 +11,14 @@ proc simpleInstruction(name: string, offset: int): int =
   result = offset + 1
 
 proc byteInstruction(name: string, chunk: Chunk, offset: int): int =
-  let slot_idx = chunk.code[offset + 1]
-  echo fmt"{name:16} {slot_idx:4}"
+  let slotIdx = chunk.code[offset + 1]
+  echo fmt"{name:16} {slotIdx:4}"
   result = offset + 2
+
+proc jumpInstruction(name: string, sign: int, chunk: Chunk, offset: int): int =
+  let jumpDistance = (chunk.code[offset + 1].uint16 shl 8) or chunk.code[offset + 2].uint16
+  echo fmt"{name:16} {offset:4} -> {offset + 3 + sign * jumpDistance.int}"
+  result = offset + 3
 
 proc disassembleInstruction*(chunk: Chunk, offset: int): int =
   stdout.write(fmt"{offset:04} ")
@@ -43,6 +48,8 @@ proc disassembleInstruction*(chunk: Chunk, offset: int): int =
     of opNot: simpleInstruction("OP_NOT", offset)
     of opNegate: simpleInstruction("OP_NEGATE", offset)
     of opPrint: simpleInstruction("OP_PRINT", offset)
+    of opJump: jumpInstruction("OP_JUMP", 1, chunk, offset)
+    of opJumpIfFalse: jumpInstruction("OP_JUMP_IF_FALSE", 1, chunk, offset)
     of opReturn: simpleInstruction("OP_RETURN", offset)
 
 proc disassembleChunk*(chunk: Chunk, name: string) =

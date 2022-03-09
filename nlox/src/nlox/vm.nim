@@ -45,6 +45,11 @@ proc readByte(): byte =
   result = vm.ip[]
   vm.ip = vm.ip + 1
 
+proc readShort(): uint16 =
+  result = vm.ip[].uint16 shl 8
+  result = result or (vm.ip + 1)[]
+  vm.ip = vm.ip + 2
+
 proc readConstant(): Value = vm.chunk.constants[readByte()]
 
 proc push(value: Value) =
@@ -128,6 +133,10 @@ proc run(): InterpretResult =
         if not isNum(peek(0)): return runtimeError("Operand must be a number.")
         push(-pop().number)
       of opPrint: echo pop()
+      of opJump: vm.ip = vm.ip + readShort().int
+      of opJumpIfFalse:
+        let jumpDistance = readShort()
+        if isFalsey(peek(0)): vm.ip = vm.ip + jumpDistance.int
       of opReturn: return interpOk
 
 proc interpret*(chunk: Chunk): InterpretResult =

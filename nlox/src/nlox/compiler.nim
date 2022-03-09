@@ -115,6 +115,18 @@ proc defineVariable(c; global: byte) =
   if c.scopeDepth > 0: c.locals[^1].depth = c.scopeDepth
   else: c.emitBytes(opDefineGlobal, global)
 
+# emit the instruction w/ by two placeholder bytes, and return the index of the instruction
+proc emitJump(c; instruction: byte): int =
+  c.emitBytes(instruction, 0xff, 0xff)
+  c.compilingChunk.code.len - 2
+
+# patch the distance for the jump at the given offset into the code chunk
+proc patchJump(c; offset: int) =
+  let jumpDistance = c.compilingChunk.code.len - offset - 2
+  if jumpDistance > high(uint16).int: c.error("Too much code to jump over.")
+  c.compilingChunk.code[offset] = ((jumpDistance shr 8) and 0xff).byte
+  c.compilingChunk.code[offset + 1] = (jumpDistance and 0xff).byte
+
 proc endCompiler(c) =
   c.emitBytes(opReturn)
   when defined(debugPrintCode):
@@ -276,6 +288,19 @@ proc printStatement(c) =
   c.consume(tkSemicolon, "Expect ';' after value.")
   c.emitBytes(opPrint)
 
+proc ifStatement(c) =
+  c.consume(tkLeftParen, "Expect '(' after 'if'.")
+  c.expression()
+  c.consume(tkRightParen, "Expect ')' after condition.")
+  let thenJump = c.emitJump(opJumpIfFalse)
+  c.emitBytes(opPop) # clean up variable on stack from conditional expression
+  c.statement()
+  let elseJump = c.emitJump(opJump) # jump past the 'else' after 'then' branch completes
+  c.patchJump(thenJump)
+  c.emitBytes(opPop) # clean up variable on stack from conditional expression
+  if c.match(tkElse): c.statement()
+  c.patchJump(elseJump)
+
 proc blockStatement(c) =
   while not c.check(tkRightBrace) and not c.check(tkEof):
     c.declaration()
@@ -292,6 +317,7 @@ proc synchronize(c) =
 
 proc statement(c) =
   if c.match(tkPrint): c.printStatement()
+  elif c.match(tkIf): c.ifStatement()
   elif c.match(tkLeftBrace):
     c.beginScope()
     c.blockStatement()

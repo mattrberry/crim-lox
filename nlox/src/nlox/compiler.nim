@@ -186,6 +186,20 @@ proc literal(c; canAssign: bool) =
     of tkTrue: c.emitBytes(opTrue)
     else: discard
 
+proc `and`(c; canAssign: bool) =
+  let endJump = c.emitJump(opJumpIfFalse)
+  c.emitBytes(opPop)
+  c.parsePrecedence(precAnd)
+  c.patchJump(endJump)
+
+proc `or`(c; canAssign: bool) =
+  let elseJump = c.emitJump(opJumpIfFalse)
+  let endJump = c.emitJump(opJump)
+  c.patchJump(elseJump)
+  c.emitBytes(opPop)
+  c.parsePrecedence(precOr)
+  c.patchJump(endJump)
+
 proc str(c; canAssign: bool) =
   c.emitConstant(c.parser.previous.lit[1..^2])
 
@@ -240,7 +254,7 @@ const rules: array[TokType, ParseRule] = [
   tkIdent:        ParseRule(prefix: variable, infix: nil,    precedence: precNone),
   tkString:       ParseRule(prefix: str,      infix: nil,    precedence: precNone),
   tkNumber:       ParseRule(prefix: number,   infix: nil,    precedence: precNone),
-  tkAnd:          ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
+  tkAnd:          ParseRule(prefix: nil,      infix: `and`,  precedence: precAnd),
   tkClass:        ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkElse:         ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkFalse:        ParseRule(prefix: literal,  infix: nil,    precedence: precNone),
@@ -248,7 +262,7 @@ const rules: array[TokType, ParseRule] = [
   tkFun:          ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkIf:           ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkNil:          ParseRule(prefix: literal,  infix: nil,    precedence: precNone),
-  tkOr:           ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
+  tkOr:           ParseRule(prefix: nil,      infix: `or`,   precedence: precOr),
   tkPrint:        ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkReturn:       ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkSuper:        ParseRule(prefix: nil,      infix: nil,    precedence: precNone),

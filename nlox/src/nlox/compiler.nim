@@ -149,6 +149,7 @@ proc endScope(c) =
 proc expression(c)
 proc statement(c)
 proc declaration(c)
+proc varDeclaration(c)
 proc getRule(tokType: TokType): ParseRule
 proc parsePrecedence(c; precedence: Precedence)
 
@@ -308,6 +309,45 @@ proc printStatement(c) =
   c.consume(tkSemicolon, "Expect ';' after value.")
   c.emitBytes(opPrint)
 
+proc forStatement(c) =
+  c.beginScope() # wrap a new scope in case the 'for' statement declares a new variable
+  c.consume(tkLeftParen, "Expect '(' after 'for'.")
+
+  # initializer clause
+  if c.match(tkSemiColon): discard # no initializer
+  elif c.match(tkVar): c.varDeclaration()
+  else: c.expressionStatement()
+
+  var loopStart = c.compilingChunk.code.len()
+
+  # condition clause
+  var exitJump = -1
+  if not c.match(tkSemicolon):
+    c.expression()
+    c.consume(tkSemicolon, "Expect ';' after loop condition.")
+    exitJump = c.emitJump(opJumpIfFalse) # jump out of the loop if the cond is false
+    c.emitBytes(opPop) # pop the condition off the stack
+
+  # increment clause (occurs after the body, which requires jumps to and from the body)
+  if not c.match(tkRightParen):
+    let bodyJump = c.emitJump(opJump) # jump past increment clause to body
+    let incrementStart = c.compilingChunk.code.len()
+    c.expression()
+    c.emitBytes(opPop) # pop increment clause result off stack
+    c.consume(tkRightParen, "Expect ')' after for clauses.")
+    c.emitLoop(loopStart)
+    loopStart = incrementStart # where the body will jump after execution
+    c.patchJump(bodyJump)
+
+  c.statement() # for-loop body
+  c.emitLoop(loopStart)
+
+  if exitJump != -1: # only necessary if condition exists
+    c.patchJump(exitJump)
+    c.emitBytes(opPop) # still need to pop condition off the stack
+
+  c.endScope()
+
 proc ifStatement(c) =
   c.consume(tkLeftParen, "Expect '(' after 'if'.")
   c.expression()
@@ -349,6 +389,7 @@ proc synchronize(c) =
 
 proc statement(c) =
   if c.match(tkPrint): c.printStatement()
+  elif c.match(tkFor): c.forStatement()
   elif c.match(tkIf): c.ifStatement()
   elif c.match(tkWhile): c.whileStatement()
   elif c.match(tkLeftBrace):

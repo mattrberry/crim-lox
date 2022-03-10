@@ -33,6 +33,7 @@ proc disassembleInstruction*(chunk: Chunk, offset: int): int =
     of opTrue: simpleInstruction("OP_TRUE", offset)
     of opFalse: simpleInstruction("OP_FALSE", offset)
     of opPop: simpleInstruction("OP_POP", offset)
+    of opDup: simpleInstruction("OP_DUP", offset)
     of opGetLocal: byteInstruction("OP_GET_LOCAL", chunk, offset)
     of opSetLocal: byteInstruction("OP_SET_LOCAL", chunk, offset)
     of opGetGlobal: constantInstruction("OP_GET_GLOBAL", chunk, offset)

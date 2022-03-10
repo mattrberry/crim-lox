@@ -101,6 +101,7 @@ proc run(): InterpretResult =
       of opTrue: push(true.toValue())
       of opFalse: push(false.toValue())
       of opPop: discard pop()
+      of opDup: push(peek(0))
       of opGetLocal: push(vm.stack[readByte()])
       of opSetLocal: vm.stack[readByte()] = peek(0)
       of opGetGlobal:

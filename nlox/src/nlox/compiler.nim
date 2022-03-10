@@ -247,6 +247,7 @@ const rules: array[TokType, ParseRule] = [
   tkDot:          ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkMinus:        ParseRule(prefix: unary,    infix: binary, precedence: precTerm),
   tkPlus:         ParseRule(prefix: nil,      infix: binary, precedence: precTerm),
+  tkColon:        ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkSemicolon:    ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkSlash:        ParseRule(prefix: nil,      infix: binary, precedence: precFactor),
   tkStar:         ParseRule(prefix: nil,      infix: binary, precedence: precFactor),
@@ -277,6 +278,9 @@ const rules: array[TokType, ParseRule] = [
   tkTrue:         ParseRule(prefix: literal,  infix: nil,    precedence: precNone),
   tkVar:          ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkWhile:        ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
+  tkSwitch:       ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
+  tkCase:         ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
+  tkDefault:      ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkError:        ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkEof:          ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
 ]
@@ -373,6 +377,30 @@ proc whileStatement(c) =
   c.patchJump(exitJump) # mark exit jump point
   c.emitBytes(opPop) # pop expression if condition is false
 
+proc switchStatement(c) =
+  c.consume(tkLeftParen, "Expect '(' after 'switch'.")
+  c.expression()
+  c.consume(tkRightParen, "Expect ')' after expression.")
+  c.consume(tkLeftBrace, "Expect '{' before switch cases.")
+  var jumpsToPatch: seq[int]
+  while c.match(tkCase):
+    c.emitBytes(opDup) # duplicate expression result so it's not trashed
+    c.expression()
+    c.consume(tkColon, "Expect ':' after case expression.")
+    c.emitBytes(opEqual)
+    let nextCase = c.emitJump(opJumpIfFalse)
+    c.emitBytes(opPop, opPop) # discard equality result and expression result
+    c.statement()
+    jumpsToPatch.add(c.emitJump(opJump)) # will jump to end of switch statement
+    c.patchJump(nextCase) # mark start of next case
+    c.emitBytes(opPop) # discard equality result
+  if c.match(tkDefault):
+    c.consume(tkColon, "Expect ':' after 'default'.")
+    c.emitBytes(opPop) # discard expression result
+    c.statement()
+  c.consume(tkRightBrace, "Expect '}' after switch cases.")
+  for jump in jumpsToPatch: c.patchJump(jump)
+
 proc blockStatement(c) =
   while not c.check(tkRightBrace) and not c.check(tkEof):
     c.declaration()
@@ -383,7 +411,8 @@ proc synchronize(c) =
   while c.parser.current.tokType != tkEof:
     if c.parser.previous.tokType == tkSemicolon or c.parser.current.tokType in {
         tkClass, tkFun, tkVar, tkFor,
-        tkIf, tkWhile, tkPrint, tkReturn
+        tkIf, tkWhile, tkPrint, tkReturn,
+        tkSwitch
       }: return
     c.advance()
 
@@ -392,6 +421,7 @@ proc statement(c) =
   elif c.match(tkFor): c.forStatement()
   elif c.match(tkIf): c.ifStatement()
   elif c.match(tkWhile): c.whileStatement()
+  elif c.match(tkSwitch): c.switchStatement()
   elif c.match(tkLeftBrace):
     c.beginScope()
     c.blockStatement()

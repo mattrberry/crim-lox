@@ -14,7 +14,7 @@ type
     tkLeftParen, tkRightParen,
     tkLeftBrace, tkRightBrace,
     tkComma, tkDot, tkMinus, tkPlus,
-    tkSemicolon, tkSlash, tkStar,
+    tkColon, tkSemicolon, tkSlash, tkStar,
     # one or two character tokens
     tkBang, tkBangEqual,
     tkEqual, tkEqualEqual,
@@ -26,7 +26,8 @@ type
     tkAnd, tkClass, tkElse, tkFalse,
     tkFor, tkFun, tkIf, tkNil, tkOr,
     tkPrint, tkReturn, tkSuper, tkThis,
-    tkTrue, tkVar, tkWhile
+    tkTrue, tkVar, tkWhile,
+    tkSwitch, tkCase, tkDefault,
     # others
     tkError, tkEof
 
@@ -107,6 +108,9 @@ proc identifierType(s): TokType = # not using a trie as the book does
   of "fun": tkFun
   of "this": tkThis
   of "true": tkTrue
+  of "switch": tkSwitch
+  of "case": tkCase
+  of "default": tkDefault
   else: tkIdent
 
 proc identifier(s): Token =
@@ -133,6 +137,7 @@ proc scanToken*(s): Token =
     of '{': return s.makeToken(tkLeftBrace)
     of '}': return s.makeToken(tkRightBrace)
     of ';': return s.makeToken(tkSemicolon)
+    of ':': return s.makeToken(tkColon)
     of ',': return s.makeToken(tkComma)
     of '.': return s.makeToken(tkDot)
     of '-': return s.makeToken(tkMinus)

@@ -1,4 +1,4 @@
-import value
+import types
 
 type
   OpCode* {.size: 1.} = enum
@@ -26,11 +26,6 @@ type
     opJumpIfFalse,
     opLoop,
     opReturn
-
-  Chunk* = ref object
-    code*: seq[byte]
-    lines*: seq[int]
-    constants*: seq[Value]
 
 converter toByte(opcode: OpCode): byte = cast[byte](opcode)
 

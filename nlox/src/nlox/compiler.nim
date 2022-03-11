@@ -1,5 +1,5 @@
 import std/[strformat, strutils]
-import scanner, chunk, value
+import scanner, chunk, value, types
 when defined(debugPrintCode): import debug
 
 type

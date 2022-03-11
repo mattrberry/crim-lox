@@ -1,5 +1,5 @@
 import std/strformat
-import chunk, value
+import chunk, value, types
 
 proc constantInstruction(name: string, chunk: Chunk, offset: int): int =
   let constantIdx = chunk.code[offset + 1]

@@ -1,5 +1,5 @@
 import std/[strformat, tables]
-import chunk, value, compiler
+import chunk, value, types, compiler
 when defined(debugTraceExecution):
   import debug
 

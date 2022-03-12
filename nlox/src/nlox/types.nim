@@ -12,11 +12,18 @@ type
     of valObj: obj*: Obj
 
   ObjectType* = enum
-    objStr
+    objStr, objFun
 
-  Obj* = ref object
-    case objType*: ObjectType
-    of objStr: str*: string
+  Obj* = ref object of RootObj
+    objType*: ObjectType
+
+  ObjString* = ref object of Obj
+    str*: string
+
+  ObjFunction* = ref object of Obj
+    arity*: int
+    chunk*: Chunk
+    name*: string
 
   Chunk* = ref object
     code*: seq[byte]

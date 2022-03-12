@@ -70,8 +70,8 @@ template binaryOp(operator: untyped): untyped =
   push(operator(a, b))
 
 proc concatenate() =
-  let b = pop().obj.str
-  let a = pop().obj.str
+  let b = ObjString(pop().obj).str
+  let a = ObjString(pop().obj).str
   push(a & b)
 
 proc isFalsey(val: Value): bool =
@@ -83,7 +83,11 @@ proc valuesEqual(a, b: Value): bool =
     of valBool: a.boolean == b.boolean
     of valNil: true
     of valNum: a.number == b.number
-    of valObj: a.obj.str == b.obj.str
+    of valObj:
+      if a.obj.objType != b.obj.objType: return false
+      case a.obj.objType
+        of objStr: ObjString(a.obj).str == ObjString(b.obj).str
+        of objFun: ObjFunction(a.obj) == ObjFunction(b.obj)
 
 proc run(): InterpretResult =
   while true:
@@ -104,15 +108,15 @@ proc run(): InterpretResult =
       of opGetLocal: push(vm.stack[readByte()])
       of opSetLocal: vm.stack[readByte()] = peek(0)
       of opGetGlobal:
-        let name = readConstant().obj.str
+        let name = ObjString(readConstant().obj).str
         if name in vm.globals: push(vm.globals[name])
         else: return runtimeError(fmt"Undefined variable '{name}'.")
       of opDefineGlobal:
-        let name = readConstant().obj.str
+        let name = ObjString(readConstant().obj).str
         vm.globals[name] = peek(0)
         discard pop()
       of opSetGlobal:
-        let name = readConstant().obj.str
+        let name = ObjString(readConstant().obj).str
         if name in vm.globals: vm.globals[name] = peek(0)
         else: return runtimeError(fmt"Undefined variable '{name}'.")
       of opEqual:

@@ -7,7 +7,7 @@ converter toValue*(f: float): Value = Value(valType: valNum, number: f)
 converter toValue*(o: Obj): Value = Value(valType: valObj, obj: o)
 converter toValue*(s: string): Value = ObjString(objType: objStr, str: s)
 
-proc newFunction*(arity: int, name: string): Obj =
+proc newFunction*(arity: int, name: string): ObjFunction =
   ObjFunction(objType: objFun, arity: arity, chunk: newChunk(), name: name)
 
 proc isBool*(value: Value): bool = value.valType == valBool
@@ -28,7 +28,8 @@ proc `$`*(value: Value): string =
         of objStr: ObjString(value.obj).str
         of objFun:
           let fun = ObjFunction(value.obj)
-          fmt"<fn {fun.name}:{fun.arity}>"
+          if fun.name == "": "<script>"
+          else: fmt"<fn {fun.name}:{fun.arity}>"
 
 proc printValue*(value: Value) =
   stdout.write(value)

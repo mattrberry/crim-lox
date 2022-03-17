@@ -6,9 +6,17 @@ type
   Compiler = ref object
     scanner: Scanner
     parser: Parser
+    functionCompiler: FunctionCompiler
+
+  FunctionCompiler = ref object
+    function: ObjFunction
+    functionType: FunctionType
     compilingChunk: Chunk
     locals: seq[Local]
     scopeDepth: int
+
+  FunctionType = enum
+    typeFunction, typeScript
 
   Parser = ref object
     current, previous: Token
@@ -38,6 +46,9 @@ type
   ParseFn = proc(c: Compiler, canAssign: bool)
 
 using c: Compiler
+
+proc current(c): FunctionCompiler = c.functionCompiler
+proc currentChunk(c): Chunk = c.functionCompiler.function.chunk
 
 converter toByte(tokType: TokType): byte = byte(ord(tokType))
 
@@ -78,46 +89,48 @@ proc match(c; tokType: TokType): bool =
   if result: c.advance()
 
 proc makeConstant(c; value: Value): byte =
-  let constant = c.compilingChunk.addConstant(value)
+  let constant = c.currentChunk().addConstant(value)
   if constant > 255: c.error("Too many constants in one chunk.")
   else: result = constant.byte
 
 proc emitBytes(c; bytes: varargs[byte]) =
-  for b in bytes: writeChunk(c.compilingChunk, b, c.parser.previous.line)
+  for b in bytes: writeChunk(c.currentChunk(), b, c.parser.previous.line)
 
 proc emitConstant(c; value: Value) = c.emitBytes(opConstant, c.makeConstant(value))
 
 proc emitLoop(c; loopStart: int) =
   c.emitBytes(opLoop)
-  let offset = c.compilingChunk.code.len() - loopStart + 2 # +2 for the jump's operands
+  let offset = c.currentChunk().code.len() - loopStart + 2 # +2 for the jump's operands
   if offset > high(uint16).int: c.error("Loop body too large.")
   c.emitBytes(((offset shr 8) and 0xff).byte, (offset and 0xff).byte)
 
 # emit the instruction w/ by two placeholder bytes, and return the index of the instruction
 proc emitJump(c; instruction: byte): int =
   c.emitBytes(instruction, 0xff, 0xff)
-  c.compilingChunk.code.len - 2
+  c.currentChunk().code.len - 2
 
 # patch the distance for the jump at the given offset into the code chunk
 proc patchJump(c; offset: int) =
-  let jumpDistance = c.compilingChunk.code.len - offset - 2
+  let jumpDistance = c.currentChunk().code.len - offset - 2
   if jumpDistance > high(uint16).int: c.error("Too much code to jump over.")
-  c.compilingChunk.code[offset] = ((jumpDistance shr 8) and 0xff).byte
-  c.compilingChunk.code[offset + 1] = (jumpDistance and 0xff).byte
+  c.currentChunk().code[offset] = ((jumpDistance shr 8) and 0xff).byte
+  c.currentChunk().code[offset + 1] = (jumpDistance and 0xff).byte
 
 proc identifierConstant(c; name: Token): byte = c.makeConstant(name.lit)
 
+proc addLocal(c; local: Local) = c.current().locals.add(local)
 # add a new local variable, but mark it as uninitialized
-proc addLocal(c; name: string) = c.locals.add(Local(name: name, depth: -1))
+proc addLocal(c; name: string) = c.addLocal(Local(name: name, depth: -1))
 
 # declare but don't define a local variable in the current scope
 proc declareVariable(c) =
-  if c.scopeDepth == 0: return # vars in global scope are added to constants table
+  let current = c.current()
+  if c.current().scopeDepth == 0: return # vars in global scope are added to constants table
   let name = c.parser.previous.lit
   # don't allow multiple variable declarations of the same name in the same scope
-  for idx in countdown(c.locals.high, 0):
-    let local = c.locals[idx]
-    if local.depth != -1 and local.depth < c.scopeDepth: break
+  for idx in countdown(current.locals.high, 0):
+    let local = current.locals[idx]
+    if local.depth != -1 and local.depth < current.scopeDepth: break
     if name == local.name: c.error("Already a variable with this name in this scope.")
   c.addLocal(name)
 
@@ -125,26 +138,22 @@ proc declareVariable(c) =
 proc parseVariable(c; errorMessage: string): byte =
   c.consume(tkIdent, errorMessage)
   c.declareVariable()
-  if c.scopeDepth > 0: 0'u8 # local scope, don't add to constant's table
+  if c.current().scopeDepth > 0: 0'u8 # local scope, don't add to constant's table
   else: c.identifierConstant(c.parser.previous) # add to constants table
 
 # mark variable as initialized by setting local scope depth or emitting global define
 proc defineVariable(c; global: byte) =
-  if c.scopeDepth > 0: c.locals[^1].depth = c.scopeDepth
+  let current = c.current()
+  if current.scopeDepth > 0: current.locals[^1].depth = current.scopeDepth
   else: c.emitBytes(opDefineGlobal, global)
 
-proc endCompiler(c) =
-  c.emitBytes(opReturn)
-  when defined(debugPrintCode):
-    if not c.parser.hadError:
-      disassembleChunk(c.compilingChunk, "code")
-
-proc beginScope(c) = inc(c.scopeDepth)
+proc beginScope(c) = inc(c.current().scopeDepth)
 proc endScope(c) =
-  dec(c.scopeDepth)
-  while len(c.locals) > 0 and c.locals[^1].depth > c.scopeDepth:
+  let current = c.current()
+  dec(current.scopeDepth)
+  while len(current.locals) > 0 and current.locals[^1].depth > current.scopeDepth:
     c.emitBytes(opPop)
-    discard c.locals.pop()
+    discard current.locals.pop()
 
 proc expression(c)
 proc statement(c)
@@ -212,8 +221,9 @@ proc str(c; canAssign: bool) =
 
 # determine how many bytes back in the stack the local is
 proc resolveLocal(c; name: string): int =
-  for idx in countdown(c.locals.high, 0):
-    let local = c.locals[idx]
+  let current = c.current()
+  for idx in countdown(current.locals.high, 0):
+    let local = current.locals[idx]
     if name == local.name:
       if local.depth == -1: c.error("Can't read local variable in its own initializer.")
       return idx
@@ -318,7 +328,7 @@ proc forStatement(c) =
   elif c.match(tkVar): c.varDeclaration()
   else: c.expressionStatement()
 
-  var loopStart = c.compilingChunk.code.len()
+  var loopStart = c.currentChunk().code.len()
 
   # condition clause
   var exitJump = -1
@@ -331,7 +341,7 @@ proc forStatement(c) =
   # increment clause (occurs after the body, which requires jumps to and from the body)
   if not c.match(tkRightParen):
     let bodyJump = c.emitJump(opJump) # jump past increment clause to body
-    let incrementStart = c.compilingChunk.code.len()
+    let incrementStart = c.currentChunk().code.len()
     c.expression()
     c.emitBytes(opPop) # pop increment clause result off stack
     c.consume(tkRightParen, "Expect ')' after for clauses.")
@@ -362,7 +372,7 @@ proc ifStatement(c) =
   c.patchJump(elseJump)
 
 proc whileStatement(c) =
-  let loopStart = c.compilingChunk.code.len()
+  let loopStart = c.currentChunk().code.len()
   c.consume(tkLeftParen, "Expect '(' after 'while'.")
   c.expression()
   c.consume(tkRightParen, "Expect ')' after condition.")
@@ -410,10 +420,30 @@ proc declaration(c) =
   else: c.statement()
   if c.parser.panicMode: c.synchronize()
 
-proc compile*(source: string, chunk: Chunk): bool =
-  let scanner = newScanner(source)
-  let compiler = Compiler(scanner: scanner, parser: new Parser, compilingChunk: chunk)
+proc endCompiler(c): ObjFunction =
+  c.emitBytes(opReturn)
+  result = c.current().function
+  when defined(debugPrintCode):
+    if not c.parser.hadError:
+      disassembleChunk(c.currentChunk(), if result.name == "": "<script>" else: result.name)
+
+proc newFunctionCompiler(functionType: FunctionType): FunctionCompiler =
+  FunctionCompiler(
+    function: newFunction(0, ""),
+    functionType: functionType,
+    compilingChunk: newChunk()
+  )
+
+proc newCompiler(source: string): Compiler =
+  result = Compiler(
+    scanner: newScanner(source),
+    parser: new Parser,
+    functionCompiler: newFunctionCompiler(typeScript)
+  )
+  result.addLocal(Local(name: "", depth: 0)) # reserve space for top-level function
+
+proc compile*(source: string): ObjFunction =
+  let compiler = newCompiler(source)
   compiler.advance()
   while not compiler.match(tkEof): compiler.declaration()
-  result = not compiler.parser.hadError
-  compiler.endCompiler()
+  if not compiler.parser.hadError: result = compiler.endCompiler()

@@ -1,4 +1,4 @@
-import std/[strformat, tables]
+import std/[strformat, tables, decls]
 import chunk, value, types, compiler
 when defined(debugTraceExecution):
   import debug
@@ -42,22 +42,23 @@ proc newVM(): VM =
 
 proc runtimeError(vm: VM, message: string): InterpretResult =
   stderr.writeLine(message)
-  let instruction = vm.frames[^1].ip - addr(vm.frames[^1].function.chunk.code[0]) - 1
-  let line = vm.frames[^1].function.chunk.lines[instruction]
+  let frame = vm.frames[^1]
+  let instruction = frame.ip - addr(frame.function.chunk.code[0]) - 1
+  let line = frame.function.chunk.lines[instruction]
   stderr.writeLine(fmt"[line {line}] in script")
   vm.resetStack()
   interpRuntimeError
 
-proc readByte(vm: VM): byte =
-  result = vm.frames[^1].ip[]
-  vm.frames[^1].ip = vm.frames[^1].ip + 1
+proc readByte(frame: var CallFrame): byte =
+  result = frame.ip[]
+  frame.ip = frame.ip + 1
 
-proc readShort(vm: VM): uint16 =
-  result = vm.frames[^1].ip[].uint16 shl 8
-  result = result or (vm.frames[^1].ip + 1)[]
-  vm.frames[^1].ip = vm.frames[^1].ip + 2
+proc readShort(frame: var CallFrame): uint16 =
+  result = frame.ip[].uint16 shl 8
+  result = result or (frame.ip + 1)[]
+  frame.ip = frame.ip + 2
 
-proc readConstant(vm: VM): Value = vm.frames[^1].function.chunk.constants[vm.readByte()]
+proc readConstant(frame: var CallFrame): Value = frame.function.chunk.constants[frame.readByte()]
 
 proc push(vm: VM, value: Value) =
   vm.stackTop[] = value
@@ -97,6 +98,7 @@ proc valuesEqual(a, b: Value): bool =
         of objFun: ObjFunction(a.obj) == ObjFunction(b.obj)
 
 proc run(vm: VM): InterpretResult =
+  var frame {.byAddr.} = vm.frames[^1]
   while true:
     when defined(debugTraceExecution):
       stdout.write("          ")
@@ -104,26 +106,26 @@ proc run(vm: VM): InterpretResult =
         if vm.stackBase() + idx >= vm.stackTop: break
         stdout.write(fmt"[ {value} ]")
       echo ""
-      discard disassembleInstruction(vm.frames[^1].function.chunk, vm.frames[^1].ip - addr(vm.frames[^1].function.chunk.code[0]))
-    let instruction = OpCode(vm.readByte())
+      discard disassembleInstruction(frame.function.chunk, frame.ip - addr(frame.function.chunk.code[0]))
+    let instruction = OpCode(frame.readByte())
     case instruction
-      of opConstant: vm.push(vm.readConstant())
+      of opConstant: vm.push(frame.readConstant())
       of opNil: vm.push(nilValue)
       of opTrue: vm.push(true.toValue())
       of opFalse: vm.push(false.toValue())
       of opPop: discard vm.pop()
-      of opGetLocal: vm.push(vm.frames[^1].slots[vm.readByte()])
-      of opSetLocal: vm.frames[^1].slots[vm.readByte()] = vm.peek(0)
+      of opGetLocal: vm.push(frame.slots[frame.readByte()])
+      of opSetLocal: frame.slots[frame.readByte()] = vm.peek(0)
       of opGetGlobal:
-        let name = ObjString(vm.readConstant().obj).str
+        let name = ObjString(frame.readConstant().obj).str
         if name in vm.globals: vm.push(vm.globals[name])
         else: return vm.runtimeError(fmt"Undefined variable '{name}'.")
       of opDefineGlobal:
-        let name = ObjString(vm.readConstant().obj).str
+        let name = ObjString(frame.readConstant().obj).str
         vm.globals[name] = vm.peek(0)
         discard vm.pop()
       of opSetGlobal:
-        let name = ObjString(vm.readConstant().obj).str
+        let name = ObjString(frame.readConstant().obj).str
         if name in vm.globals: vm.globals[name] = vm.peek(0)
         else: return vm.runtimeError(fmt"Undefined variable '{name}'.")
       of opEqual:
@@ -144,11 +146,11 @@ proc run(vm: VM): InterpretResult =
         if not isNum(vm.peek(0)): return vm.runtimeError("Operand must be a number.")
         vm.push(-vm.pop().number)
       of opPrint: echo vm.pop()
-      of opJump: vm.frames[^1].ip = vm.frames[^1].ip + vm.readShort()
+      of opJump: frame.ip = frame.ip + frame.readShort()
       of opJumpIfFalse:
-        let jumpDistance = vm.readShort()
-        if isFalsey(vm.peek(0)): vm.frames[^1].ip = vm.frames[^1].ip + jumpDistance
-      of opLoop: vm.frames[^1].ip = vm.frames[^1].ip - vm.readShort()
+        let jumpDistance = frame.readShort()
+        if isFalsey(vm.peek(0)): frame.ip = frame.ip + jumpDistance
+      of opLoop: frame.ip = frame.ip - frame.readShort()
       of opReturn: return interpOk
 
 proc interpret*(source: string): InterpretResult =

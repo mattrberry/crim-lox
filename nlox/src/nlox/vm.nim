@@ -35,7 +35,7 @@ proc resetStack(vm: VM) =
   vm.stackTop = vm.stackBase
   vm.frames.setLen(0)
 
-proc newVM(): VM =
+proc newVM*(): VM =
   new result
   result.resetStack()
   result.globals = initTable[string, Value]()
@@ -153,10 +153,9 @@ proc run(vm: VM): InterpretResult =
       of opLoop: frame.ip = frame.ip - frame.readShort()
       of opReturn: return interpOk
 
-proc interpret*(source: string): InterpretResult =
+proc interpret*(vm: VM, source: string): InterpretResult =
   let fun = compile(source)
   if fun == nil: return interpCompileError
-  let vm = newVM()
   vm.push(fun)
   vm.frames.add(CallFrame(function: fun, ip: unsafeAddr fun.chunk.code[0], slots: addr vm.stack[0]))
   vm.run()

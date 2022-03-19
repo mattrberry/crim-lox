@@ -2,15 +2,17 @@ import os
 import nlox/vm
 
 proc repl() =
+  let vm = newVM()
   while true:
     stdout.write("> ")
     let line = stdin.readLine()
-    discard interpret(line)
+    discard vm.interpret(line)
 
 proc runFile(file: string) =
   let
     source = readFile(file) # assumes file exists and can be read
-    result = interpret(source)
+    vm = newVM()
+    result = vm.interpret(source)
   if result == InterpretResult.interpCompileError: quit(65)
   if result == InterpretResult.interpRuntimeError: quit(70)
 

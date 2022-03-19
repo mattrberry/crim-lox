@@ -9,6 +9,7 @@ type
     functionCompiler: FunctionCompiler
 
   FunctionCompiler = ref object
+    enclosing: FunctionCompiler
     function: ObjFunction
     functionType: FunctionType
     compilingChunk: Chunk
@@ -47,8 +48,14 @@ type
 
 using c: Compiler
 
+proc emitBytes(c; bytes: varargs[byte])
+
 proc current(c): FunctionCompiler = c.functionCompiler
 proc currentChunk(c): Chunk = c.functionCompiler.function.chunk
+
+proc addLocal(c; local: Local) = c.current().locals.add(local)
+# add a new local variable, but mark it as uninitialized
+proc addLocal(c; name: string) = c.addLocal(Local(name: name, depth: -1))
 
 converter toByte(tokType: TokType): byte = byte(ord(tokType))
 
@@ -68,6 +75,30 @@ proc error(c; message: string) =
 
 proc errorAtCurrent(c; message: string) =
   c.errorAt(c.parser.current, message)
+
+proc newFunctionCompiler(current: FunctionCompiler, functionType: FunctionType, functionName: string): FunctionCompiler =
+  FunctionCompiler(
+    enclosing: current,
+    function: newFunction(0, functionName),
+    functionType: functionType,
+    compilingChunk: newChunk()
+  )
+
+proc newCompiler(source: string): Compiler =
+  result = Compiler(
+    scanner: newScanner(source),
+    parser: new Parser,
+    functionCompiler: newFunctionCompiler(nil, typeScript, "")
+  )
+  result.addLocal(Local(name: "", depth: 0)) # reserve space for top-level function
+
+proc endCompiler(c): ObjFunction =
+  c.emitBytes(opReturn)
+  result = c.current().function
+  when defined(debugPrintCode):
+    if not c.parser.hadError:
+      disassembleChunk(c.currentChunk(), if result.name == "": "<script>" else: result.name)
+  c.functionCompiler = c.current().enclosing
 
 proc advance(c) =
   c.parser.previous = c.parser.current
@@ -118,9 +149,10 @@ proc patchJump(c; offset: int) =
 
 proc identifierConstant(c; name: Token): byte = c.makeConstant(name.lit)
 
-proc addLocal(c; local: Local) = c.current().locals.add(local)
-# add a new local variable, but mark it as uninitialized
-proc addLocal(c; name: string) = c.addLocal(Local(name: name, depth: -1))
+proc markInitialized(c) =
+  let current = c.current()
+  if current.scopeDepth == 0: return
+  current.locals[^1].depth = current.scopeDepth
 
 # declare but don't define a local variable in the current scope
 proc declareVariable(c) =
@@ -143,8 +175,7 @@ proc parseVariable(c; errorMessage: string): byte =
 
 # mark variable as initialized by setting local scope depth or emitting global define
 proc defineVariable(c; global: byte) =
-  let current = c.current()
-  if current.scopeDepth > 0: current.locals[^1].depth = current.scopeDepth
+  if c.current().scopeDepth > 0: c.markInitialized()
   else: c.emitBytes(opDefineGlobal, global)
 
 proc beginScope(c) = inc(c.current().scopeDepth)
@@ -408,6 +439,30 @@ proc statement(c) =
     c.endScope()
   else: c.expressionStatement()
 
+proc function(c; functionType: FunctionType) =
+  c.functionCompiler = newFunctionCompiler(c.current(), functionType, c.parser.previous.lit)
+  c.beginScope()
+  c.consume(tkLeftParen, "Expect '(' after function name.")
+  if not c.check(tkRightParen):
+    while true:
+      c.current().function.arity += 1
+      if c.current().function.arity > 255:
+        c.errorAtCurrent("Can't have more than 255 parameters.")
+      let constant = c.parseVariable("Expect parameter name.")
+      c.defineVariable(constant)
+      if not c.match(tkComma): break
+  c.consume(tkRightParen, "Expect ')' after parameters.")
+  c.consume(tkLeftBrace, "Expect '{' before function body.")
+  c.blockStatement()
+  let function = c.endCompiler()
+  c.emitBytes(opConstant, c.makeConstant(function))
+
+proc funDeclaration(c) =
+  let global = c.parseVariable("Expect function name.")
+  c.markInitialized()
+  c.function(typeFunction)
+  c.defineVariable(global)
+
 proc varDeclaration(c) =
   let global = c.parseVariable("Expect variable name.")
   if c.match(tkEqual): c.expression()
@@ -416,31 +471,10 @@ proc varDeclaration(c) =
   c.defineVariable(global)
 
 proc declaration(c) =
-  if c.match(tkVar): c.varDeclaration()
+  if c.match(tkFun): c.funDeclaration()
+  elif c.match(tkVar): c.varDeclaration()
   else: c.statement()
   if c.parser.panicMode: c.synchronize()
-
-proc endCompiler(c): ObjFunction =
-  c.emitBytes(opReturn)
-  result = c.current().function
-  when defined(debugPrintCode):
-    if not c.parser.hadError:
-      disassembleChunk(c.currentChunk(), if result.name == "": "<script>" else: result.name)
-
-proc newFunctionCompiler(functionType: FunctionType): FunctionCompiler =
-  FunctionCompiler(
-    function: newFunction(0, ""),
-    functionType: functionType,
-    compilingChunk: newChunk()
-  )
-
-proc newCompiler(source: string): Compiler =
-  result = Compiler(
-    scanner: newScanner(source),
-    parser: new Parser,
-    functionCompiler: newFunctionCompiler(typeScript)
-  )
-  result.addLocal(Local(name: "", depth: 0)) # reserve space for top-level function
 
 proc compile*(source: string): ObjFunction =
   let compiler = newCompiler(source)

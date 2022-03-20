@@ -42,10 +42,15 @@ proc newVM*(): VM =
 
 proc runtimeError(vm: VM, message: string): InterpretResult =
   stderr.writeLine(message)
-  let frame = vm.frames[^1]
-  let instruction = frame.ip - addr(frame.function.chunk.code[0]) - 1
-  let line = frame.function.chunk.lines[instruction]
-  stderr.writeLine(fmt"[line {line}] in script")
+  for i in countdown(high(vm.frames), 0):
+    let
+      frame = vm.frames[i]
+      function = frame.function
+      instruction = frame.ip - addr(function.chunk.code[0]) - 1
+      line = function.chunk.lines[instruction]
+      funName = if function.name == "": "script"
+                else: fmt"{function.name}()"
+    stderr.writeLine(fmt"[line {line}] in {funName}")
   vm.resetStack()
   interpRuntimeError
 
@@ -68,7 +73,7 @@ proc pop(vm: VM): Value =
   vm.stackTop = vm.stackTop - 1
   result = vm.stackTop[]
 
-proc peek(vm: VM, distance: int): Value = (vm.stackTop - 1 - distance)[]
+proc peek(vm: VM, distance: SomeInteger): Value = (vm.stackTop - 1 - distance)[]
 
 template binaryOp(vm: VM, operator: untyped): untyped =
   if not isNum(vm.peek(0)) or not isNum(vm.peek(1)):
@@ -97,9 +102,31 @@ proc valuesEqual(a, b: Value): bool =
         of objStr: ObjString(a.obj).str == ObjString(b.obj).str
         of objFun: ObjFunction(a.obj) == ObjFunction(b.obj)
 
+proc call(vm: VM, function: ObjFunction, argCount: SomeInteger): bool =
+  if argCount.int != function.arity:
+    discard vm.runtimeError(fmt"Expected {function.arity} arguments but got {argCount}.")
+  elif len(vm.frames) == framesMax:
+    discard vm.runtimeError("Stack overflow.")
+  else:
+    result = true
+    vm.frames.add(
+      CallFrame(
+        function: function,
+        ip: addr(function.chunk.code[0]),
+        slots: vm.stackTop - argCount - 1
+      )
+    )
+
+proc callValue(vm: VM, callee: Value, argCount: SomeInteger): bool =
+  if isObj(callee):
+    case callee.obj.objType
+    of objFun: return vm.call(ObjFunction(callee.obj), argCount)
+    else: discard # non-callable object
+  discard vm.runtimeError("Can only call functions and classes.")
+
 proc run(vm: VM): InterpretResult =
-  var frame {.byAddr.} = vm.frames[^1]
   while true:
+    var frame {.byAddr.} = vm.frames[^1]
     when defined(debugTraceExecution):
       stdout.write("          ")
       for idx, value in vm.stack:
@@ -151,11 +178,15 @@ proc run(vm: VM): InterpretResult =
         let jumpDistance = frame.readShort()
         if isFalsey(vm.peek(0)): frame.ip = frame.ip + jumpDistance
       of opLoop: frame.ip = frame.ip - frame.readShort()
+      of opCall:
+        let argCount = frame.readByte()
+        if not vm.callValue(vm.peek(argCount), argCount):
+          return interpRuntimeError
       of opReturn: return interpOk
 
 proc interpret*(vm: VM, source: string): InterpretResult =
-  let fun = compile(source)
-  if fun == nil: return interpCompileError
-  vm.push(fun)
-  vm.frames.add(CallFrame(function: fun, ip: unsafeAddr fun.chunk.code[0], slots: addr vm.stack[0]))
+  let function = compile(source)
+  if function == nil: return interpCompileError
+  vm.push(function)
+  discard vm.call(function, 0) # set up stack frame for top-level script
   vm.run()

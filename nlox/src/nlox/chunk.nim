@@ -25,6 +25,7 @@ type
     opJump,
     opJumpIfFalse,
     opLoop,
+    opCall,
     opReturn
 
 converter toByte(opcode: OpCode): byte = cast[byte](opcode)

@@ -51,6 +51,7 @@ proc disassembleInstruction*(chunk: Chunk, offset: int): int =
     of opJump: jumpInstruction("OP_JUMP", 1, chunk, offset)
     of opJumpIfFalse: jumpInstruction("OP_JUMP_IF_FALSE", 1, chunk, offset)
     of opLoop: jumpInstruction("OP_LOOP", -1, chunk, offset)
+    of opCall: byteInstruction("OP_CALL", chunk, offset)
     of opReturn: simpleInstruction("OP_RETURN", offset)
 
 proc disassembleChunk*(chunk: Chunk, name: string) =

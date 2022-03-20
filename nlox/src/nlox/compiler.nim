@@ -81,7 +81,8 @@ proc newFunctionCompiler(current: FunctionCompiler, functionType: FunctionType, 
     enclosing: current,
     function: newFunction(0, functionName),
     functionType: functionType,
-    compilingChunk: newChunk()
+    compilingChunk: newChunk(),
+    locals: @[Local(name: "", depth: 0)] # slot reserved for the function object
   )
 
 proc newCompiler(source: string): Compiler =
@@ -90,7 +91,6 @@ proc newCompiler(source: string): Compiler =
     parser: new Parser,
     functionCompiler: newFunctionCompiler(nil, typeScript, "")
   )
-  result.addLocal(Local(name: "", depth: 0)) # reserve space for top-level function
 
 proc endCompiler(c): ObjFunction =
   c.emitBytes(opReturn)
@@ -279,8 +279,21 @@ proc namedVariable(c; name: Token, canAssign: bool) =
 
 proc variable(c; canAssign: bool) = c.namedVariable(c.parser.previous, canAssign)
 
+proc argumentList(c): byte =
+  if not c.check(tkRightParen):
+    while true:
+      c.expression()
+      if result == 255: c.error("Can't have more than 255 arguments.")
+      result += 1
+      if not c.match(tkComma): break
+  c.consume(tkRightParen, "Expect ')' after arguments.")
+
+proc call(c; canAssign: bool) =
+  let argCount = c.argumentList()
+  c.emitBytes(opCall, argCount)
+
 const rules: array[TokType, ParseRule] = [
-  tkLeftParen:    ParseRule(prefix: grouping, infix: nil,    precedence: precNone),
+  tkLeftParen:    ParseRule(prefix: grouping, infix: call,   precedence: precCall),
   tkRightParen:   ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkLeftBrace:    ParseRule(prefix: nil,      infix: nil,    precedence: precNone),
   tkRightBrace:   ParseRule(prefix: nil,      infix: nil,    precedence: precNone),

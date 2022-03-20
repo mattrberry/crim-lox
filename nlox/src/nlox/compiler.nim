@@ -93,7 +93,7 @@ proc newCompiler(source: string): Compiler =
   )
 
 proc endCompiler(c): ObjFunction =
-  c.emitBytes(opReturn)
+  c.emitBytes(opNil, opReturn)
   result = c.current().function
   when defined(debugPrintCode):
     if not c.parser.hadError:
@@ -415,6 +415,14 @@ proc ifStatement(c) =
   if c.match(tkElse): c.statement()
   c.patchJump(elseJump)
 
+proc returnStatement(c) =
+  if c.current().functionType == typeScript: c.error("Can't return from top-level code.")
+  if c.match(tkSemicolon): c.emitBytes(opNil)
+  else:
+    c.expression()
+    c.consume(tkSemicolon, "Expect ';' after return value.")
+  c.emitBytes(opReturn)
+
 proc whileStatement(c) =
   let loopStart = c.currentChunk().code.len()
   c.consume(tkLeftParen, "Expect '(' after 'while'.")
@@ -445,6 +453,7 @@ proc statement(c) =
   if c.match(tkPrint): c.printStatement()
   elif c.match(tkFor): c.forStatement()
   elif c.match(tkIf): c.ifStatement()
+  elif c.match(tkReturn): c.returnStatement()
   elif c.match(tkWhile): c.whileStatement()
   elif c.match(tkLeftBrace):
     c.beginScope()

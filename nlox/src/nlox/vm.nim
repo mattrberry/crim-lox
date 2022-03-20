@@ -182,7 +182,14 @@ proc run(vm: VM): InterpretResult =
         let argCount = frame.readByte()
         if not vm.callValue(vm.peek(argCount), argCount):
           return interpRuntimeError
-      of opReturn: return interpOk
+      of opReturn:
+        let resultValue = vm.pop() # capture return value
+        let frame = vm.frames.pop() # drop last call frame
+        if len(vm.frames) == 0: # exit vm loop if returning from top-level script
+          discard vm.pop()
+          return interpOk
+        vm.stackTop = frame.slots # pop all slots used by caller
+        vm.push(resultValue) # push return value back to stack
 
 proc interpret*(vm: VM, source: string): InterpretResult =
   let function = compile(source)

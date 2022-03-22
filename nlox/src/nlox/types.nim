@@ -12,7 +12,7 @@ type
     of valObj: obj*: Obj
 
   ObjectType* = enum
-    objStr, objFun
+    objStr, objFun, objNative
 
   Obj* = ref object of RootObj
     objType*: ObjectType
@@ -24,6 +24,11 @@ type
     arity*: int
     chunk*: Chunk
     name*: string
+
+  ObjNative* = ref object of Obj
+    function*: NativeFn
+
+  NativeFn* = proc(argCount: int, args: ptr Value): Value
 
   Chunk* = ref object
     code*: seq[byte]

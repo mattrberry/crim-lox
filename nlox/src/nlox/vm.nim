@@ -1,4 +1,4 @@
-import std/[strformat, tables, decls]
+import std/[strformat, tables, decls, times]
 import chunk, value, types, compiler
 when defined(debugTraceExecution):
   import debug
@@ -35,10 +35,15 @@ proc resetStack(vm: VM) =
   vm.stackTop = vm.stackBase
   vm.frames.setLen(0)
 
+proc defineNative(vm: VM, name: string, function: NativeFn) = vm.globals[name] = function
+
+proc clockNative(argCount: int, args: ptr Value): Value = epochTime()
+
 proc newVM*(): VM =
   new result
   result.resetStack()
   result.globals = initTable[string, Value]()
+  result.defineNative("clock", clockNative)
 
 proc runtimeError(vm: VM, message: string): InterpretResult =
   stderr.writeLine(message)
@@ -101,6 +106,7 @@ proc valuesEqual(a, b: Value): bool =
       case a.obj.objType
         of objStr: ObjString(a.obj).str == ObjString(b.obj).str
         of objFun: ObjFunction(a.obj) == ObjFunction(b.obj)
+        of objNative: ObjNative(a.obj) == ObjNative(b.obj)
 
 proc call(vm: VM, function: ObjFunction, argCount: SomeInteger): bool =
   if argCount.int != function.arity:
@@ -121,6 +127,12 @@ proc callValue(vm: VM, callee: Value, argCount: SomeInteger): bool =
   if isObj(callee):
     case callee.obj.objType
     of objFun: return vm.call(ObjFunction(callee.obj), argCount)
+    of objNative:
+      let native = ObjNative(callee.obj).function
+      let resultValue = native(argCount.int, vm.stackTop - argCount)
+      vm.stackTop = vm.stackTop - argCount + 1
+      vm.push(resultValue)
+      return true
     else: discard # non-callable object
   discard vm.runtimeError("Can only call functions and classes.")
 

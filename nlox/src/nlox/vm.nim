@@ -130,7 +130,7 @@ proc callValue(vm: VM, callee: Value, argCount: SomeInteger): bool =
     of objNative:
       let native = ObjNative(callee.obj).function
       let resultValue = native(argCount.int, vm.stackTop - argCount)
-      vm.stackTop = vm.stackTop - argCount + 1
+      vm.stackTop = vm.stackTop - argCount - 1
       vm.push(resultValue)
       return true
     else: discard # non-callable object

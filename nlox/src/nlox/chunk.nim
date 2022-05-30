@@ -28,7 +28,7 @@ type
     opCall,
     opReturn
 
-converter toByte(opcode: OpCode): byte = cast[byte](opcode)
+converter toByte*(opcode: OpCode): byte = cast[byte](opcode)
 
 proc newChunk*(): Chunk =
   new result

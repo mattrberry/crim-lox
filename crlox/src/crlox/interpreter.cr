@@ -264,7 +264,12 @@ module Crlox
 
     private def check_number_operands(operator : Token, *operands : LoxValue) : Nil
       return if operands.all? &.is_a?(Float64)
-      raise RuntimeError.new(operator, "Operand must be a number.")
+      error = if operands.size == 1
+                "Operand must be a number."
+              else
+                "Operands must be numbers."
+              end
+      raise RuntimeError.new(operator, error)
     end
 
     private def lookup_variable(name : Token, expr : Expr) : LoxValue

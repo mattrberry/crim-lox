@@ -17,7 +17,7 @@ module Crlox
       end
 
       def to_s : String
-        "<native fn clock>"
+        "<native fn>"
       end
     end
 

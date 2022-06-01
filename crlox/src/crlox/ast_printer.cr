@@ -36,7 +36,7 @@ module Crlox
     end
 
     def visit(stmt : Stmt::Function) : String
-      "(fun #{stmt.name} (#{stmt.params.map &.lexeme}) #{print(body)})"
+      "(fun #{stmt.name.lexeme}(#{stmt.params.map &.lexeme}) {\n#{print(stmt.body)}\n})"
     end
 
     def visit(stmt : Stmt::If) : String
@@ -87,7 +87,7 @@ module Crlox
     end
 
     def visit(expr : Expr::Call) : String
-      "(#{print(expr.callee)} #{expr.arguments.map(&.accept(self)).join(" ")}})"
+      "#{print(expr.callee)}(#{expr.arguments.map(&.accept(self)).join(", ")})"
     end
 
     def visit(expr : Expr::Grouping) : String

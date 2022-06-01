@@ -52,7 +52,8 @@ module Crlox
     end
 
     def visit(stmt : Stmt::Return) : Nil
-      raise Return.new(evaluate(stmt.value.not_nil!)) unless stmt.value.nil?
+      value = evaluate(stmt.value.not_nil!) unless stmt.value.nil?
+      raise Return.new(value)
     end
 
     def visit(stmt : Stmt::While) : Nil
